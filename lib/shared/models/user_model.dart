@@ -17,19 +17,26 @@ class SellerProfile {
     this.accountNumber,
   });
 
-  factory SellerProfile.fromJson(Map<String, dynamic> json) {
+  factory SellerProfile.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return SellerProfile();
+
     List<double>? coords;
-    if (json['shopLocation'] != null && json['shopLocation']['coordinates'] != null) {
-      coords = (json['shopLocation']['coordinates'] as List).map((e) => (e as num).toDouble()).toList();
+    if (json['shopLocation'] != null &&
+        json['shopLocation'] is Map<String, dynamic> &&
+        json['shopLocation']['coordinates'] != null &&
+        json['shopLocation']['coordinates'] is List) {
+      coords = (json['shopLocation']['coordinates'] as List)
+          .map((e) => (e as num?)?.toDouble() ?? 0.0)
+          .toList();
     }
     return SellerProfile(
-      shopName: json['shopName'],
-      shopDescription: json['shopDescription'],
-      shopAddress: json['shopAddress'],
+      shopName: json['shopName']?.toString(),
+      shopDescription: json['shopDescription']?.toString(),
+      shopAddress: json['shopAddress']?.toString(),
       coordinates: coords,
-      bankName: json['bankName'],
-      accountHolder: json['accountHolder'],
-      accountNumber: json['accountNumber'],
+      bankName: json['bankName']?.toString(),
+      accountHolder: json['accountHolder']?.toString(),
+      accountNumber: json['accountNumber']?.toString(),
     );
   }
 
@@ -77,16 +84,32 @@ class UserModel {
   bool get isStaff => role == 'STAFF' || role == 'ADMIN';
   bool get isBuyer => role == 'BUYER';
 
-  factory UserModel.fromJson(Map<String, dynamic> json) {
+  factory UserModel.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return UserModel(id: '', name: 'User', email: '', role: 'BUYER');
+    }
+
+    List<String> userRoles = ['BUYER'];
+    if (json['roles'] != null && json['roles'] is List) {
+      userRoles = (json['roles'] as List).map((e) => e?.toString() ?? 'BUYER').toList();
+    } else if (json['role'] != null) {
+      userRoles = [json['role'].toString()];
+    }
+
+    SellerProfile? profile;
+    if (json['sellerProfile'] != null && json['sellerProfile'] is Map<String, dynamic>) {
+      profile = SellerProfile.fromJson(json['sellerProfile'] as Map<String, dynamic>);
+    }
+
     return UserModel(
-      id: json['_id'] ?? json['id'] ?? '',
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      role: json['role'] ?? 'BUYER',
-      roles: json['roles'] != null ? List<String>.from(json['roles']) : [json['role'] ?? 'BUYER'],
-      isSellerApproved: json['isSellerApproved'] ?? false,
-      phoneNumber: json['phoneNumber'],
-      sellerProfile: json['sellerProfile'] != null ? SellerProfile.fromJson(json['sellerProfile']) : null,
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'User',
+      email: json['email']?.toString() ?? '',
+      role: json['role']?.toString() ?? 'BUYER',
+      roles: userRoles,
+      isSellerApproved: json['isSellerApproved'] == true,
+      phoneNumber: json['phoneNumber']?.toString(),
+      sellerProfile: profile,
     );
   }
 

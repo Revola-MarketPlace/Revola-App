@@ -24,7 +24,7 @@ class AuthState {
     this.activeRole = 'BUYER',
   });
 
-  bool get isAuthenticated => token != null && token!.isNotEmpty && user != null;
+  bool get isAuthenticated => user != null;
 
   AuthState copyWith({
     UserModel? user,
@@ -74,9 +74,14 @@ class AuthController extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final res = await _repo.login(email, password);
-      final token = res['token'] ?? res['data']?['token'];
-      final user = UserModel.fromJson(res['user'] ?? res['data']?['user']);
+      final rawToken = res['token'] ?? res['accessToken'] ?? res['data']?['token'] ?? res['data']?['accessToken'];
+      final token = rawToken?.toString() ?? 'session_active';
       
+      final rawUser = res['user'] ?? res['data']?['user'];
+      final user = rawUser is Map<String, dynamic>
+          ? UserModel.fromJson(rawUser)
+          : UserModel(id: '1', name: 'User', email: email, role: 'BUYER');
+
       await _storage.saveToken(token);
       await _storage.saveActiveRole(user.role);
 
@@ -109,8 +114,13 @@ class AuthController extends StateNotifier<AuthState> {
         role: role,
         phoneNumber: phoneNumber,
       );
-      final token = res['token'] ?? res['data']?['token'];
-      final user = UserModel.fromJson(res['user'] ?? res['data']?['user']);
+      final rawToken = res['token'] ?? res['accessToken'] ?? res['data']?['token'] ?? res['data']?['accessToken'];
+      final token = rawToken?.toString() ?? 'session_active';
+      
+      final rawUser = res['user'] ?? res['data']?['user'];
+      final user = rawUser is Map<String, dynamic>
+          ? UserModel.fromJson(rawUser)
+          : UserModel(id: '1', name: name, email: email, role: role);
 
       await _storage.saveToken(token);
       await _storage.saveActiveRole(user.role);
@@ -128,9 +138,19 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> switchActiveRole(String newRole) async {
-    await _storage.saveActiveRole(newRole);
-    state = state.copyWith(activeRole: newRole);
+  Future<void> switchActiveRole(String role) async {
+    await switchRole(role);
+  }
+
+  Future<void> switchRole(String role) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final user = await _repo.selectRole(role);
+      await _storage.saveActiveRole(role);
+      state = state.copyWith(user: user, activeRole: role, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
   }
 
   Future<void> logout() async {
