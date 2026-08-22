@@ -27,7 +27,7 @@ class CartScreen extends ConsumerWidget {
               ? EmptyStateView(
                   icon: Icons.shopping_cart_outlined,
                   title: 'Your Cart is Empty',
-                  message: 'Explore the marketplace to find reclaimed wood, metals, and electronics.',
+                  message: 'Explore the marketplace to find reclaimed wood, structural metals, and electronics.',
                   actionText: 'Browse Materials',
                   onAction: () => context.go('/catalog'),
                 )
@@ -40,6 +40,10 @@ class CartScreen extends ConsumerWidget {
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (context, idx) {
                           final item = items[idx];
+                          final product = item.product;
+                          final productName = product.name.isNotEmpty ? product.name : 'Reclaimed Material';
+                          final imageUrl = product.primaryImage;
+
                           return Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
@@ -50,16 +54,27 @@ class CartScreen extends ConsumerWidget {
                             child: Row(
                               children: [
                                 Container(
-                                  width: 70,
-                                  height: 70,
+                                  width: 72,
+                                  height: 72,
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: const Color(0xFFF1F5F9),
                                     border: Border.all(color: AppTheme.borderColor),
                                   ),
                                   clipBehavior: Clip.antiAlias,
                                   child: CachedNetworkImage(
-                                    imageUrl: item.product.primaryImage,
+                                    imageUrl: imageUrl,
                                     fit: BoxFit.cover,
+                                    placeholder: (_, __) => const Center(
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
+                                      ),
+                                    ),
+                                    errorWidget: (_, __, ___) => const Center(
+                                      child: Icon(Icons.inventory_2_outlined, color: AppTheme.primaryBlue, size: 28),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -68,32 +83,38 @@ class CartScreen extends ConsumerWidget {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        item.product.name,
+                                        productName,
                                         style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppTheme.textPrimary),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        Formatters.formatEtb(item.product.price),
+                                        Formatters.formatEtb(product.price > 0 ? product.price : item.priceAtAddition),
                                         style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.accentOrange),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Condition: ${product.condition}',
+                                        style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                                       ),
                                     ],
                                   ),
                                 ),
                                 // Quantity modifier
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.remove_circle_outline, size: 20),
+                                      icon: const Icon(Icons.remove_circle_outline, size: 22, color: AppTheme.textSecondary),
                                       onPressed: item.quantity > 1
-                                          ? () => ref.read(cartControllerProvider.notifier).updateQuantity(item.id, item.quantity - 1)
-                                          : () => ref.read(cartControllerProvider.notifier).removeItem(item.id),
+                                          ? () => ref.read(cartControllerProvider.notifier).updateQuantity(product.id, item.quantity - 1)
+                                          : () => ref.read(cartControllerProvider.notifier).removeItem(product.id),
                                     ),
                                     Text('${item.quantity}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
                                     IconButton(
-                                      icon: const Icon(Icons.add_circle_outline, size: 20),
-                                      onPressed: () => ref.read(cartControllerProvider.notifier).updateQuantity(item.id, item.quantity + 1),
+                                      icon: const Icon(Icons.add_circle_outline, size: 22, color: AppTheme.primaryBlue),
+                                      onPressed: () => ref.read(cartControllerProvider.notifier).updateQuantity(product.id, item.quantity + 1),
                                     ),
                                   ],
                                 ),

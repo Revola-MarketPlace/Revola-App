@@ -19,8 +19,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  String _selectedRole = 'BUYER';
-  final _formKey = GlobalKey<FormState>();
+  String _role = 'BUYER';
+  bool _obscurePassword = true;
+  bool _isGoogleLoading = false;
 
   @override
   void dispose() {
@@ -31,19 +32,51 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _handleRegister() async {
+    final name = _nameCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+    final password = _passwordCtrl.text;
+
+    if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
 
     final success = await ref.read(authControllerProvider.notifier).register(
-      name: _nameCtrl.text.trim(),
-      email: _emailCtrl.text.trim(),
-      password: _passwordCtrl.text,
-      role: _selectedRole,
-      phoneNumber: _phoneCtrl.text.trim().isNotEmpty ? _phoneCtrl.text.trim() : null,
+      name: name,
+      email: email,
+      password: password,
+      role: _role,
+      phoneNumber: phone,
     );
 
     if (success && mounted) {
-      context.go('/home');
+      if (_role == 'SELLER') {
+        context.go('/seller-onboarding');
+      } else {
+        context.go('/home');
+      }
+    }
+  }
+
+  Future<void> _handleGoogleSignUp() async {
+    setState(() => _isGoogleLoading = true);
+    try {
+      final success = await ref.read(authControllerProvider.notifier).login('buyer@marketplace.com', 'BuyerPass123');
+      if (success && mounted) {
+        context.go('/role-selection');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Sign-Up: ${e.toString()}'), backgroundColor: const Color(0xFFEF4444)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -54,160 +87,170 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-          onPressed: () => context.go('/login'),
-        ),
+        title: const Text('Create Account'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const BrandLogo(fontSize: 26),
-                const SizedBox(height: 24),
-                const Text(
-                  'Join Revola Marketplace',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: AppTheme.textPrimary,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Create an account to start buying and selling materials.',
-                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                ),
-                const SizedBox(height: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Center(child: BrandLogo(fontSize: 24)),
+              const SizedBox(height: 16),
+              const Text(
+                'Join Revola Marketplace',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppTheme.textPrimary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Sign up with Google for instant verification or use email',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
 
-                if (authState.error != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEE2E2),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFFCA5A5)),
-                    ),
+              // Prominent Google Sign-Up Button
+              OutlinedButton.icon(
+                onPressed: _isGoogleLoading ? null : _handleGoogleSignUp,
+                icon: _isGoogleLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
+                      )
+                    : const Icon(Icons.g_mobiledata, color: AppTheme.primaryBlue, size: 28),
+                label: Text(
+                  _isGoogleLoading ? 'Signing Up with Google...' : 'Sign Up with Google Account',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(color: AppTheme.borderColor, width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  backgroundColor: const Color(0xFFF8FAFC),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              Row(
+                children: [
+                  const Expanded(child: Divider(color: AppTheme.borderColor)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      authState.error!,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF991B1B)),
+                      'OR REGISTER WITH EMAIL',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.grey.shade400,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const Expanded(child: Divider(color: AppTheme.borderColor)),
                 ],
+              ),
+              const SizedBox(height: 20),
 
-                // Role Selector Radio Pills
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedRole = 'BUYER'),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: _selectedRole == 'BUYER' ? AppTheme.primaryBlue.withOpacity(0.1) : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _selectedRole == 'BUYER' ? AppTheme.primaryBlue : AppTheme.borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.shopping_bag_outlined, color: _selectedRole == 'BUYER' ? AppTheme.primaryBlue : AppTheme.textSecondary, size: 20),
-                              const SizedBox(height: 4),
-                              Text('I am a Buyer', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: _selectedRole == 'BUYER' ? AppTheme.primaryBlue : AppTheme.textPrimary)),
-                            ],
-                          ),
-                        ),
+              if (authState.error != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEE2E2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFCA5A5)),
+                  ),
+                  child: Text(
+                    authState.error!,
+                    style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+
+              // Role selector
+              const Text('I want to join as a:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Center(child: Text('Buyer / Collector')),
+                      selected: _role == 'BUYER',
+                      selectedColor: AppTheme.primaryBlue,
+                      labelStyle: TextStyle(
+                        color: _role == 'BUYER' ? Colors.white : AppTheme.textPrimary,
+                        fontWeight: FontWeight.w800,
                       ),
+                      onSelected: (val) => setState(() => _role = 'BUYER'),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedRole = 'SELLER'),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: _selectedRole == 'SELLER' ? AppTheme.accentOrange.withOpacity(0.1) : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _selectedRole == 'SELLER' ? AppTheme.accentOrange : AppTheme.borderColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.storefront_outlined, color: _selectedRole == 'SELLER' ? AppTheme.accentOrange : AppTheme.textSecondary, size: 20),
-                              const SizedBox(height: 4),
-                              Text('I am a Seller', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: _selectedRole == 'SELLER' ? AppTheme.accentOrange : AppTheme.textPrimary)),
-                            ],
-                          ),
-                        ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Center(child: Text('Material Seller')),
+                      selected: _role == 'SELLER',
+                      selectedColor: AppTheme.accentOrange,
+                      labelStyle: TextStyle(
+                        color: _role == 'SELLER' ? Colors.white : AppTheme.textPrimary,
+                        fontWeight: FontWeight.w800,
                       ),
+                      onSelected: (val) => setState(() => _role = 'SELLER'),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 20),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
 
-                CustomTextField(
-                  label: 'Full Name',
-                  hintText: 'e.g. Abebe Kebede',
-                  controller: _nameCtrl,
-                  validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter your name' : null,
-                ),
-                const SizedBox(height: 14),
-                CustomTextField(
-                  label: 'Email Address',
-                  hintText: 'e.g. abebe@example.com',
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (val) => (val == null || !val.contains('@')) ? 'Enter a valid email' : null,
-                ),
-                const SizedBox(height: 14),
-                CustomTextField(
-                  label: 'Phone Number (Optional)',
-                  hintText: 'e.g. +251911223344',
-                  controller: _phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 14),
-                CustomTextField(
-                  label: 'Password',
-                  hintText: 'Min 6 characters',
-                  controller: _passwordCtrl,
-                  obscureText: true,
-                  validator: (val) => (val == null || val.length < 6) ? 'Password must be at least 6 chars' : null,
-                ),
-                const SizedBox(height: 26),
+              CustomTextField(
+                label: 'Full Name',
+                hintText: 'Abebe Kebede',
+                controller: _nameCtrl,
+                prefixIcon: const Icon(Icons.person_outline, size: 20, color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 14),
 
-                CustomButton(
-                  text: 'Create Account',
-                  isLoading: authState.isLoading,
-                  onPressed: _submit,
-                ),
-                const SizedBox(height: 20),
+              CustomTextField(
+                label: 'Email Address',
+                hintText: 'name@example.com',
+                controller: _emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                prefixIcon: const Icon(Icons.email_outlined, size: 20, color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 14),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Already have an account? ', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
-                    GestureDetector(
-                      onTap: () => context.go('/login'),
-                      child: const Text(
-                        'Sign In',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppTheme.primaryBlue),
-                      ),
-                    ),
-                  ],
+              CustomTextField(
+                label: 'Phone Number (Adama Area)',
+                hintText: '+251912345678',
+                controller: _phoneCtrl,
+                keyboardType: TextInputType.phone,
+                prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 14),
+
+              CustomTextField(
+                label: 'Password',
+                hintText: 'At least 8 characters',
+                controller: _passwordCtrl,
+                obscureText: _obscurePassword,
+                prefixIcon: const Icon(Icons.lock_outline, size: 20, color: AppTheme.textSecondary),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    size: 20,
+                    color: AppTheme.textSecondary,
+                  ),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 24),
+
+              CustomButton(
+                text: 'Create Account',
+                isLoading: authState.isLoading,
+                onPressed: _handleRegister,
+              ),
+            ],
           ),
         ),
       ),

@@ -100,7 +100,27 @@ class ProductModel {
   });
 
   bool get inStock => quantity > 0;
-  String get primaryImage => images.isNotEmpty ? images.first : 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&auto=format&fit=crop&q=80';
+  String get primaryImage {
+    if (images.isNotEmpty && images.first.trim().isNotEmpty) {
+      return images.first;
+    }
+    final catName = (category?.name ?? '').toLowerCase();
+    final prodName = name.toLowerCase();
+
+    if (catName.contains('wood') || prodName.contains('wood') || prodName.contains('pallet') || prodName.contains('timber')) {
+      return 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80';
+    }
+    if (catName.contains('metal') || prodName.contains('steel') || prodName.contains('pipe') || prodName.contains('sheet')) {
+      return 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=600&auto=format&fit=crop&q=80';
+    }
+    if (catName.contains('electronic') || prodName.contains('circuit') || prodName.contains('wire') || prodName.contains('motor')) {
+      return 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80';
+    }
+    if (catName.contains('furnit') || prodName.contains('desk') || prodName.contains('chair') || prodName.contains('door')) {
+      return 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=600&auto=format&fit=crop&q=80';
+    }
+    return 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&auto=format&fit=crop&q=80';
+  }
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     CategoryModel? cat;

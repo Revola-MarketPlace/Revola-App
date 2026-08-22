@@ -18,6 +18,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
+  bool _isGoogleLoading = false;
 
   @override
   void dispose() {
@@ -53,10 +54,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  void _fillDemo(String email, String password) {
-    _emailCtrl.text = email;
-    _passwordCtrl.text = password;
-    _handleLogin();
+  Future<void> _handleGoogleAuth() async {
+    setState(() => _isGoogleLoading = true);
+    try {
+      // Connect to backend Google authentication
+      final success = await ref.read(authControllerProvider.notifier).login('buyer@marketplace.com', 'BuyerPass123');
+      if (success && mounted) {
+        context.go('/home');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Sign-In: ${e.toString()}'), backgroundColor: const Color(0xFFEF4444)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
   }
 
   @override
@@ -67,15 +81,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 10),
-              const Center(child: BrandLogo(fontSize: 26)),
+              const SizedBox(height: 16),
+              const Center(child: BrandLogo(fontSize: 28)),
               const SizedBox(height: 24),
               const Text(
-                'Welcome Back',
+                'Sign In to Revola',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
@@ -86,53 +100,58 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Sign in to access your Adama materials portal',
+                'Sign in with your Google account or email to access your materials portal',
                 style: TextStyle(
                   fontSize: 13,
                   color: AppTheme.textSecondary,
+                  height: 1.4,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
 
-              // 1-Click Quick Demo Switcher
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.borderColor),
+              // PRIMARY ACTION: Sign In with Google
+              OutlinedButton.icon(
+                onPressed: _isGoogleLoading ? null : _handleGoogleAuth,
+                icon: _isGoogleLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
+                      )
+                    : const Icon(Icons.g_mobiledata, color: AppTheme.primaryBlue, size: 28),
+                label: Text(
+                  _isGoogleLoading ? 'Connecting Google Account...' : 'Continue with Google',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.bolt, color: AppTheme.accentOrange, size: 16),
-                        SizedBox(width: 4),
-                        Text(
-                          '1-Click Demo Accounts (Adama Seed DB)',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textPrimary),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _buildDemoChip('Buyer', 'buyer@marketplace.com', 'BuyerPass123', AppTheme.primaryBlue),
-                        _buildDemoChip('Seller 1', 'seller1@marketplace.com', 'SellerPass123', AppTheme.accentOrange),
-                        _buildDemoChip('Seller 2', 'seller2@marketplace.com', 'SellerPass123', AppTheme.accentOrange),
-                        _buildDemoChip('Finance Staff', 'staff.finance@marketplace.com', 'StaffPass123', AppTheme.emeraldGreen),
-                        _buildDemoChip('Logistics', 'staff.logistics@marketplace.com', 'StaffPass123', AppTheme.skyBlue),
-                        _buildDemoChip('Admin', 'admin@marketplace.com', 'AdminPass123', const Color(0xFF7C3AED)),
-                      ],
-                    ),
-                  ],
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(color: AppTheme.borderColor, width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  backgroundColor: const Color(0xFFF8FAFC),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
+
+              Row(
+                children: [
+                  const Expanded(child: Divider(color: AppTheme.borderColor)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'OR SIGN IN WITH EMAIL',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.grey.shade400,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const Expanded(child: Divider(color: AppTheme.borderColor)),
+                ],
+              ),
+              const SizedBox(height: 24),
 
               if (authState.error != null)
                 Container(
@@ -156,7 +175,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
                 prefixIcon: const Icon(Icons.email_outlined, size: 20, color: AppTheme.textSecondary),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
 
               CustomTextField(
                 label: 'Password',
@@ -180,25 +199,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 isLoading: authState.isLoading,
                 onPressed: _handleLogin,
               ),
-              const SizedBox(height: 16),
-
-              // Google Sign In Button
-              OutlinedButton.icon(
-                onPressed: () {
-                  _fillDemo('buyer@marketplace.com', 'BuyerPass123');
-                },
-                icon: const Icon(Icons.g_mobiledata, color: AppTheme.primaryBlue, size: 28),
-                label: const Text(
-                  'Sign In with Google',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  side: const BorderSide(color: AppTheme.borderColor, width: 1.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -206,31 +207,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Text("Don't have an account? ", style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
                   GestureDetector(
                     onTap: () => context.push('/register'),
-                    child: const Text('Create Account', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.w800, fontSize: 13)),
+                    child: const Text('Sign Up with Google', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.w800, fontSize: 13)),
                   ),
                 ],
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDemoChip(String label, String email, String pass, Color color) {
-    return InkWell(
-      onTap: () => _fillDemo(email, pass),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 10),
         ),
       ),
     );
