@@ -8,6 +8,7 @@ import '../../../../shared/models/product_model.dart';
 import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../cart/presentation/controllers/cart_controller.dart';
 import '../../../catalog/presentation/controllers/catalog_controller.dart';
 
@@ -265,6 +266,16 @@ class _MaterialDetailsScreenState extends ConsumerState<MaterialDetailsScreen> {
                         icon: Icons.add_shopping_cart,
                         onPressed: product.inStock
                             ? () async {
+                                final auth = ref.read(authControllerProvider);
+                                if (!auth.isAuthenticated || auth.user?.role != 'BUYER') {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('Please sign in with a Buyer account to add materials to cart.'),
+                                      action: SnackBarAction(label: 'Sign In', textColor: AppTheme.accentOrange, onPressed: () => context.push('/login')),
+                                    ),
+                                  );
+                                  return;
+                                }
                                 final ok = await ref.read(cartControllerProvider.notifier).addToCart(
                                   product.id,
                                   quantity: _orderQty,
