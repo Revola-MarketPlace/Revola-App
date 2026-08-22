@@ -7,16 +7,8 @@ import '../models/product_model.dart';
 class MaterialCard extends StatelessWidget {
   final ProductModel product;
   final VoidCallback? onTap;
-  final VoidCallback? onFavoriteToggle;
-  final bool isFavorite;
 
-  const MaterialCard({
-    super.key,
-    required this.product,
-    this.onTap,
-    this.onFavoriteToggle,
-    this.isFavorite = false,
-  });
+  const MaterialCard({super.key, required this.product, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -29,9 +21,9 @@ class MaterialCard extends StatelessWidget {
           border: Border.all(color: AppTheme.borderColor),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -39,25 +31,28 @@ class MaterialCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image with Condition Badge & Favorite Button
+            // Product Image with safe fallback
             Expanded(
               child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Positioned.fill(
-                    child: CachedNetworkImage(
-                      imageUrl: product.primaryImage,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: const Color(0xFFF1F5F9),
-                        child: const Center(
-                          child: Icon(Icons.inventory_2_outlined, color: Colors.black26),
+                  CachedNetworkImage(
+                    imageUrl: product.primaryImage,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(
+                      color: const Color(0xFFF1F5F9),
+                      child: const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
                         ),
                       ),
-                      errorWidget: (context, url, error) => Container(
-                        color: const Color(0xFFF1F5F9),
-                        child: const Center(
-                          child: Icon(Icons.broken_image_outlined, color: Colors.black26),
-                        ),
+                    ),
+                    errorWidget: (_, __, ___) => Container(
+                      color: const Color(0xFFF1F5F9),
+                      child: const Center(
+                        child: Icon(Icons.inventory_2_outlined, color: AppTheme.primaryBlue, size: 36),
                       ),
                     ),
                   ),
@@ -66,37 +61,38 @@ class MaterialCard extends StatelessWidget {
                     top: 8,
                     left: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.95),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.black12),
+                        color: Colors.black.withValues(alpha: 0.65),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        product.condition.toUpperCase(),
+                        product.condition,
                         style: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.textPrimary,
-                          letterSpacing: 0.3,
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                   ),
-                  // Favorite Button
-                  if (onFavoriteToggle != null)
+                  // Stock Status
+                  if (!product.inStock)
                     Positioned(
                       top: 8,
                       right: 8,
-                      child: GestureDetector(
-                        onTap: onFavoriteToggle,
-                        child: CircleAvatar(
-                          radius: 14,
-                          backgroundColor: Colors.white.withOpacity(0.9),
-                          child: Icon(
-                            isFavorite ? Icons.favorite : Icons.favorite_border,
-                            size: 16,
-                            color: isFavorite ? const Color(0xFFEF4444) : AppTheme.textSecondary,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'OUT OF STOCK',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                       ),
@@ -104,26 +100,14 @@ class MaterialCard extends StatelessWidget {
                 ],
               ),
             ),
-            // Info Section
+            // Details
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product.category?.name ?? 'Material',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.primaryBlue,
-                      letterSpacing: 0.3,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    product.name,
+                    product.name.isNotEmpty ? product.name : 'Reclaimed Material',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
@@ -132,24 +116,24 @@ class MaterialCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         Formatters.formatEtb(product.price),
                         style: const TextStyle(
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.w900,
                           color: AppTheme.accentOrange,
                         ),
                       ),
                       Text(
-                        '${product.quantity} left',
-                        style: TextStyle(
+                        '${product.quantity} in stock',
+                        style: const TextStyle(
                           fontSize: 11,
+                          color: AppTheme.textSecondary,
                           fontWeight: FontWeight.w600,
-                          color: product.inStock ? AppTheme.emeraldGreen : const Color(0xFFEF4444),
                         ),
                       ),
                     ],
