@@ -185,15 +185,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               // Google Sign In Button
               OutlinedButton.icon(
                 onPressed: () {
-                  // Connects to Google Auth endpoint
                   _fillDemo('buyer@marketplace.com', 'BuyerPass123');
                 },
-                icon: Image.network(
-                  'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
-                  width: 18,
-                  height: 18,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata, color: AppTheme.primaryBlue, size: 24),
-                ),
+                icon: const Icon(Icons.g_mobiledata, color: AppTheme.primaryBlue, size: 28),
                 label: const Text(
                   'Sign In with Google',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
