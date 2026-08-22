@@ -20,6 +20,10 @@ import '../../features/orders/presentation/screens/dispute_form_screen.dart';
 import '../../features/orders/presentation/screens/live_tracking_screen.dart';
 import '../../features/orders/presentation/screens/order_details_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/admin/presentation/screens/admin_dashboard_screen.dart';
+import '../../features/admin/presentation/screens/staff_dashboard_screen.dart';
+import '../../features/auth/presentation/screens/role_selection_screen.dart';
+import '../../features/auth/presentation/screens/seller_onboarding_screen.dart';
 import '../../features/seller/presentation/screens/add_edit_material_screen.dart';
 import '../../features/seller/presentation/screens/seller_dashboard_screen.dart';
 import '../../features/seller/presentation/screens/seller_materials_screen.dart';
@@ -174,6 +178,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/seller-orders',
         builder: (context, state) => const BuyerOrdersScreen(),
+      ),
+      GoRoute(
+        path: '/admin-dashboard',
+        builder: (context, state) => const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/staff-dashboard',
+        builder: (context, state) => const StaffDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/role-selection',
+        builder: (context, state) => const RoleSelectionScreen(),
+      ),
+      GoRoute(
+        path: '/seller-onboarding',
+        builder: (context, state) => const SellerOnboardingScreen(),
       ),
     ],
   );
