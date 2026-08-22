@@ -29,7 +29,15 @@ import '../../features/seller/presentation/screens/seller_dashboard_screen.dart'
 import '../../features/seller/presentation/screens/seller_materials_screen.dart';
 import '../../features/shell/presentation/screens/main_shell_screen.dart';
 
+final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+final _homeNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'home');
+final _catalogNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'catalog');
+final _mapNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'map');
+final _cartNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'cart');
+final _profileNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'profile');
+
 final GoRouter appRouter = GoRouter(
+  navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
   routes: [
     GoRoute(
@@ -49,7 +57,7 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const RegisterScreen(),
     ),
 
-    // Stateful Shell with 5 bottom navigation tabs
+    // Stateful Shell with 5 bottom navigation tabs and explicit navigator keys
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return MainShellScreen(navigationShell: navigationShell);
@@ -57,6 +65,7 @@ final GoRouter appRouter = GoRouter(
       branches: [
         // Branch 0: Home
         StatefulShellBranch(
+          navigatorKey: _homeNavigatorKey,
           routes: [
             GoRoute(
               path: '/home',
@@ -66,6 +75,7 @@ final GoRouter appRouter = GoRouter(
         ),
         // Branch 1: Materials Catalog
         StatefulShellBranch(
+          navigatorKey: _catalogNavigatorKey,
           routes: [
             GoRoute(
               path: '/catalog',
@@ -75,6 +85,7 @@ final GoRouter appRouter = GoRouter(
         ),
         // Branch 2: Marketplace Map
         StatefulShellBranch(
+          navigatorKey: _mapNavigatorKey,
           routes: [
             GoRoute(
               path: '/map',
@@ -84,6 +95,7 @@ final GoRouter appRouter = GoRouter(
         ),
         // Branch 3: Cart
         StatefulShellBranch(
+          navigatorKey: _cartNavigatorKey,
           routes: [
             GoRoute(
               path: '/cart',
@@ -93,6 +105,7 @@ final GoRouter appRouter = GoRouter(
         ),
         // Branch 4: Profile
         StatefulShellBranch(
+          navigatorKey: _profileNavigatorKey,
           routes: [
             GoRoute(
               path: '/profile',
