@@ -13,7 +13,7 @@ class OrderRepository {
     required double longitude,
     required List<String> productIds,
   }) async {
-    final res = await _apiClient.post(ApiEndpoints.estimateDeliveryFee, data: {
+    final res = await _apiClient.post('/orders/estimate-delivery-fee', data: {
       'latitude': latitude,
       'longitude': longitude,
       'productIds': productIds,
@@ -21,22 +21,35 @@ class OrderRepository {
     return res.data;
   }
 
-  Future<OrderModel> checkout({
+  Future<Map<String, dynamic>> checkout({
     required String paymentMethod,
-    required String deliveryAddress,
-    required List<double> deliveryCoordinates,
+    required String street,
+    required double latitude,
+    required double longitude,
     required String contactPhone,
     String? deliveryNotes,
   }) async {
-    final res = await _apiClient.post(ApiEndpoints.checkout, data: {
-      'paymentMethod': paymentMethod,
-      'deliveryAddress': deliveryAddress,
-      'deliveryCoordinates': deliveryCoordinates,
-      'contactPhone': contactPhone,
+    final res = await _apiClient.post('/orders/checkout', data: {
+      'paymentMethod': 'CHAPA',
+      'deliveryAddress': {
+        'street': street,
+        'subCity': 'Bole',
+        'city': 'Adama',
+        'phoneNumber': contactPhone,
+        'latitude': latitude,
+        'longitude': longitude,
+      },
       if (deliveryNotes != null) 'deliveryNotes': deliveryNotes,
     });
-    final json = res.data['order'] ?? res.data['data'] ?? res.data;
-    return OrderModel.fromJson(json);
+
+    final orderJson = res.data['order'] ?? res.data['data'] ?? res.data;
+    final order = OrderModel.fromJson(orderJson);
+    final paymentUrl = res.data['paymentUrl'] ?? res.data['checkoutUrl'] ?? '';
+
+    return {
+      'order': order,
+      'paymentUrl': paymentUrl,
+    };
   }
 
   Future<List<OrderModel>> getMyOrders() async {

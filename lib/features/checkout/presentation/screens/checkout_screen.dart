@@ -5,6 +5,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/geofence_helper.dart';
+import '../../../../shared/models/order_model.dart';
 import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../cart/presentation/controllers/cart_controller.dart';
@@ -77,10 +78,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      final order = await ref.read(orderRepositoryProvider).checkout(
+      final res = await ref.read(orderRepositoryProvider).checkout(
         paymentMethod: _paymentMethod,
-        deliveryAddress: _addressCtrl.text.trim(),
-        deliveryCoordinates: [_lng, _lat],
+        street: _addressCtrl.text.trim(),
+        latitude: _lat,
+        longitude: _lng,
         contactPhone: _phoneCtrl.text.trim(),
         deliveryNotes: _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
       );
@@ -89,6 +91,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       if (mounted) {
         setState(() => _isSubmitting = false);
+        final order = res['order'] as OrderModel;
         context.go('/payment/${order.id}?method=$_paymentMethod');
       }
     } catch (e) {
