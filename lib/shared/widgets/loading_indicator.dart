@@ -13,7 +13,10 @@ class LoadingIndicator extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SpinKitFadingCube(color: AppTheme.primaryBlue, size: 32),
+          const SpinKitFadingCube(
+            color: AppTheme.primaryBlue,
+            size: 32,
+          ),
           if (message != null) ...[
             const SizedBox(height: 16),
             Text(

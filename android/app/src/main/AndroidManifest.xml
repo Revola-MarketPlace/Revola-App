@@ -35,10 +35,6 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <!-- Google Sign-In server client ID -->
-        <meta-data
-            android:name="com.google.android.gms.auth.api.signin.SERVER_CLIENT_ID"
-            android:value="764795198689-41h522pnno7r3ifmb6im3iu12418m31f.apps.googleusercontent.com" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

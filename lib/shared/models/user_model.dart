@@ -17,26 +17,19 @@ class SellerProfile {
     this.accountNumber,
   });
 
-  factory SellerProfile.fromJson(Map<String, dynamic>? json) {
-    if (json == null) return SellerProfile();
-
+  factory SellerProfile.fromJson(Map<String, dynamic> json) {
     List<double>? coords;
-    if (json['shopLocation'] != null && json['shopLocation'] is Map) {
-      final loc = Map<String, dynamic>.from(json['shopLocation'] as Map);
-      if (loc['coordinates'] is List) {
-        coords = (loc['coordinates'] as List)
-            .map((e) => (e as num?)?.toDouble() ?? 0.0)
-            .toList();
-      }
+    if (json['shopLocation'] != null && json['shopLocation']['coordinates'] != null) {
+      coords = (json['shopLocation']['coordinates'] as List).map((e) => (e as num).toDouble()).toList();
     }
     return SellerProfile(
-      shopName: json['shopName']?.toString(),
-      shopDescription: json['shopDescription']?.toString(),
-      shopAddress: json['shopAddress']?.toString(),
+      shopName: json['shopName'],
+      shopDescription: json['shopDescription'],
+      shopAddress: json['shopAddress'],
       coordinates: coords,
-      bankName: json['bankName']?.toString(),
-      accountHolder: json['accountHolder']?.toString(),
-      accountNumber: json['accountNumber']?.toString(),
+      bankName: json['bankName'],
+      accountHolder: json['accountHolder'],
+      accountNumber: json['accountNumber'],
     );
   }
 
@@ -61,9 +54,7 @@ class SellerProfile {
 class UserModel {
   final String id;
   final String name;
-  final String? username;
   final String email;
-  final String? avatar;
   final String role; // 'BUYER', 'SELLER', 'ADMIN', 'STAFF'
   final List<String> roles;
   final bool isSellerApproved;
@@ -73,9 +64,7 @@ class UserModel {
   UserModel({
     required this.id,
     required this.name,
-    this.username,
     required this.email,
-    this.avatar,
     required this.role,
     this.roles = const [],
     this.isSellerApproved = false,
@@ -88,41 +77,16 @@ class UserModel {
   bool get isStaff => role == 'STAFF' || role == 'ADMIN';
   bool get isBuyer => role == 'BUYER';
 
-  String get displayUsername =>
-      username?.isNotEmpty == true ? username! : email.split('@').first;
-
-  factory UserModel.fromJson(Map<String, dynamic>? json) {
-    if (json == null) {
-      return UserModel(id: '', name: 'User', email: '', role: 'BUYER');
-    }
-
-    List<String> userRoles = ['BUYER'];
-    if (json['roles'] != null && json['roles'] is List) {
-      userRoles = (json['roles'] as List)
-          .map((e) => e?.toString() ?? 'BUYER')
-          .toList();
-    } else if (json['role'] != null) {
-      userRoles = [json['role'].toString()];
-    }
-
-    SellerProfile? profile;
-    if (json['sellerProfile'] != null && json['sellerProfile'] is Map) {
-      profile = SellerProfile.fromJson(
-        Map<String, dynamic>.from(json['sellerProfile'] as Map),
-      );
-    }
-
+  factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? 'User',
-      username: json['username']?.toString(),
-      email: json['email']?.toString() ?? '',
-      avatar: json['avatar']?.toString(),
-      role: json['role']?.toString() ?? 'BUYER',
-      roles: userRoles,
-      isSellerApproved: json['isSellerApproved'] == true,
-      phoneNumber: json['phoneNumber']?.toString(),
-      sellerProfile: profile,
+      id: json['_id'] ?? json['id'] ?? '',
+      name: json['name'] ?? '',
+      email: json['email'] ?? '',
+      role: json['role'] ?? 'BUYER',
+      roles: json['roles'] != null ? List<String>.from(json['roles']) : [json['role'] ?? 'BUYER'],
+      isSellerApproved: json['isSellerApproved'] ?? false,
+      phoneNumber: json['phoneNumber'],
+      sellerProfile: json['sellerProfile'] != null ? SellerProfile.fromJson(json['sellerProfile']) : null,
     );
   }
 
@@ -130,9 +94,7 @@ class UserModel {
     return {
       '_id': id,
       'name': name,
-      'username': username,
       'email': email,
-      'avatar': avatar,
       'role': role,
       'roles': roles,
       'isSellerApproved': isSellerApproved,

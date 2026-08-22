@@ -7,7 +7,6 @@ import '../../../../shared/widgets/empty_state_view.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/material_card.dart';
-import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../catalog/presentation/controllers/catalog_controller.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -15,34 +14,20 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categoriesAsync = ref.watch(categoriesProvider);
+        final categoriesAsync = ref.watch(categoriesProvider);
     final featuredAsync = ref.watch(featuredProductsProvider);
-    final authState = ref.watch(authControllerProvider);
-    final user = authState.user;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        title: const BrandLogo(fontSize: 22),
+        title: const BrandLogo(fontSize: 20),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: AppTheme.textPrimary),
-            tooltip: 'Notifications',
+            icon: const Icon(Icons.notifications_outlined),
             onPressed: () => context.push('/notifications'),
           ),
           IconButton(
-            icon: CircleAvatar(
-              radius: 14,
-              backgroundColor: AppTheme.primaryBlue.withOpacity(0.12),
-              child: Text(
-                user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'U',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppTheme.primaryBlue),
-              ),
-            ),
-            tooltip: 'Profile',
-            onPressed: () => context.go('/profile'),
+            icon: const Icon(Icons.search),
+            onPressed: () => context.push('/catalog'),
           ),
           const SizedBox(width: 8),
         ],
@@ -58,9 +43,9 @@ class HomeScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. HERO SEARCH BANNER
+              // 1. Hero Spotlight Banner
               Container(
-                margin: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
@@ -68,14 +53,7 @@ class HomeScreen extends ConsumerWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF1E3A8A).withOpacity(0.25),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,94 +68,68 @@ class HomeScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Text(
-                            'ADAMA MARKETPLACE',
+                            'REVOLA MARKETPLACE',
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.w900,
                               color: Colors.white,
-                              letterSpacing: 0.8,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
-                        Row(
-                          children: const [
-                            Icon(Icons.shield_rounded, color: AppTheme.emeraldGreen, size: 16),
-                            SizedBox(width: 4),
-                            Text(
-                              '100% Escrow Protected',
-                              style: TextStyle(fontSize: 10, color: Colors.white70, fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
+                        const Icon(Icons.verified, color: AppTheme.emeraldGreen, size: 18),
                       ],
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
                     const Text(
-                      'Find Reusable & Secondary Materials in Adama',
+                      'Adama Secondary & Reusable Materials',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 19,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
-                        height: 1.25,
-                        letterSpacing: -0.3,
+                        height: 1.2,
                       ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Connecting builders, recyclers, and craftsmen with surplus steel, timber, plastics, and salvage goods.',
+                      'Connecting local buyers and sellers of surplus construction, timber, metals, and scrap goods.',
                       style: TextStyle(fontSize: 12, color: Colors.white70, height: 1.4),
                     ),
                     const SizedBox(height: 16),
-
-                    // Interactive Search Bar (Tapping navigates to Catalog)
-                    InkWell(
-                      onTap: () => context.push('/catalog'),
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
-                        ),
-                        child: Row(
-                          children: const [
-                            Icon(Icons.search, color: AppTheme.primaryBlue, size: 20),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Search steel, timber, plastic barrels, rebar...',
-                                style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                              ),
-                            ),
-                            Icon(Icons.tune, color: AppTheme.textSecondary, size: 18),
-                          ],
-                        ),
+                    ElevatedButton.icon(
+                      onPressed: () => context.push('/catalog'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accentOrange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
+                      icon: const Icon(Icons.explore_outlined, size: 16),
+                      label: const Text('Explore Catalog', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
                     ),
                   ],
                 ),
               ),
 
-              // 2. CATEGORIES
+              // 2. Categories Carousel
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Material Categories',
+                      'Browse by Category',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.textPrimary),
                     ),
                     TextButton(
                       onPressed: () => context.push('/catalog'),
-                      child: const Text('See All', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.w800, fontSize: 12)),
+                      child: const Text('See All', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.w700, fontSize: 12)),
                     ),
                   ],
                 ),
               ),
               SizedBox(
-                height: 48,
+                height: 46,
                 child: categoriesAsync.when(
                   data: (categories) => ListView.separated(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -188,7 +140,6 @@ class HomeScreen extends ConsumerWidget {
                       final cat = categories[idx];
                       return ActionChip(
                         label: Text(cat.name),
-                        avatar: const Icon(Icons.category_outlined, size: 16, color: AppTheme.primaryBlue),
                         backgroundColor: Colors.white,
                         side: const BorderSide(color: AppTheme.borderColor),
                         labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
@@ -207,19 +158,19 @@ class HomeScreen extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // 3. TODAY'S PICKS / FEATURED MATERIALS
+              // 3. Featured Materials Grid
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Today\'s Material Picks',
+                      'Featured Materials',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.textPrimary),
                     ),
                     TextButton(
                       onPressed: () => context.push('/catalog'),
-                      child: const Text('View All', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.w800, fontSize: 12)),
+                      child: const Text('View All', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.w700, fontSize: 12)),
                     ),
                   ],
                 ),
@@ -238,16 +189,16 @@ class HomeScreen extends ConsumerWidget {
                   }
 
                   return GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.all(16),
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: 0.75,
+                      childAspectRatio: 0.76,
                     ),
-                    itemCount: products.length > 6 ? 6 : products.length,
+                    itemCount: products.length > 8 ? 8 : products.length,
                     itemBuilder: (context, idx) {
                       final product = products[idx];
                       return MaterialCard(
@@ -267,190 +218,42 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
 
-              const SizedBox(height: 16),
-
-              // 4. NEARBY MARKETPLACE / MAP PREVIEW
+              // 4. Trust & Escrow Guarantee
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(18),
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTheme.borderColor),
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFBBF7D0)),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
-                            borderRadius: BorderRadius.circular(12),
+                    const Icon(Icons.shield_outlined, color: AppTheme.emeraldGreen, size: 28),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Revola Escrow Protection',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF166534)),
                           ),
-                          child: const Icon(Icons.map_outlined, color: AppTheme.primaryBlue, size: 24),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text(
-                                'Adama Depots & Seller Spots',
-                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: AppTheme.textPrimary),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                '17 collection points & verified seller yards across Kebele 01-14',
-                                style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-                              ),
-                            ],
+                          SizedBox(height: 2),
+                          Text(
+                            'Payment is held securely until you receive and verify your materials in Adama.',
+                            style: TextStyle(fontSize: 11, color: Color(0xFF15803D)),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () => context.go('/map'),
-                        icon: const Icon(Icons.explore, size: 16),
-                        label: const Text('Open Interactive Map', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryBlue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-
-              const SizedBox(height: 20),
-
-              // 5. HOW REVOLA WORKS
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTheme.borderColor),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'How Revola Works',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.textPrimary),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'End-to-end managed marketplace for reliable local transactions',
-                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStepRow('1', 'Find Reusable Materials', 'Browse verified surplus listings from sellers across Adama with authentic condition photos.'),
-                    const SizedBox(height: 14),
-                    _buildStepRow('2', 'Safe Escrow Payment', 'Pay securely with Chapa, Telebirr, or Bank Transfer. Funds are locked until delivery is verified.'),
-                    const SizedBox(height: 14),
-                    _buildStepRow('3', 'Doorstep Local Delivery', 'Our logistics team picks up from the seller and delivers right to your project site or address.'),
-                    const SizedBox(height: 14),
-                    _buildStepRow('4', 'Guaranteed Payouts', 'Sellers receive prompt automated payouts once the buyer confirms delivery.'),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // 6. WHY REVOLA (TRUST & GUARANTEE)
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFBBF7D0)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.verified_user_rounded, color: AppTheme.emeraldGreen, size: 24),
-                        SizedBox(width: 10),
-                        Text(
-                          'The Revola Guarantee',
-                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF166534)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _buildCheckPoint('Strictly verified listings with zero deceptive food or mock imagery.'),
-                    _buildCheckPoint('Escrow protection holding payments safely until receipt.'),
-                    _buildCheckPoint('Promoting sustainable circular economy and zero-waste building in Adama.'),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildStepRow(String number, String title, String description) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 26,
-          height: 26,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            number,
-            style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.primaryBlue, fontSize: 12),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppTheme.textPrimary)),
-              const SizedBox(height: 2),
-              Text(description, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, height: 1.35)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCheckPoint(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.check_circle, color: AppTheme.emeraldGreen, size: 16),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 11, color: Color(0xFF15803D), height: 1.3),
-            ),
-          ),
-        ],
       ),
     );
   }

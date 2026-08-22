@@ -6,7 +6,11 @@ class ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
 
-  const ErrorView({super.key, required this.message, this.onRetry});
+  const ErrorView({
+    super.key,
+    required this.message,
+    this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,11 +23,7 @@ class ErrorView extends StatelessWidget {
             const CircleAvatar(
               radius: 36,
               backgroundColor: Color(0xFFFEE2E2),
-              child: Icon(
-                Icons.warning_amber_rounded,
-                size: 36,
-                color: Color(0xFFEF4444),
-              ),
+              child: Icon(Icons.warning_amber_rounded, size: 36, color: Color(0xFFEF4444)),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -45,7 +45,11 @@ class ErrorView extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 20),
-              CustomButton(text: 'Try Again', onPressed: onRetry, height: 42),
+              CustomButton(
+                text: 'Try Again',
+                onPressed: onRetry,
+                height: 42,
+              ),
             ],
           ],
         ),

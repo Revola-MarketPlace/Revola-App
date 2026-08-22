@@ -2,8 +2,7 @@ class NotificationModel {
   final String id;
   final String title;
   final String message;
-  final String
-  type; // 'ORDER_STATUS', 'PAYMENT_RECEIVED', 'DELIVERY_UPDATE', 'ADMIN_ALERT'
+  final String type; // 'ORDER_STATUS', 'PAYMENT_RECEIVED', 'DELIVERY_UPDATE', 'ADMIN_ALERT'
   final bool isRead;
   final DateTime? createdAt;
   final String? link;
@@ -25,9 +24,7 @@ class NotificationModel {
       message: json['message'] ?? '',
       type: json['type'] ?? 'GENERAL',
       isRead: json['read'] ?? json['isRead'] ?? false,
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'])
-          : null,
+      createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null,
       link: json['link'],
     );
   }

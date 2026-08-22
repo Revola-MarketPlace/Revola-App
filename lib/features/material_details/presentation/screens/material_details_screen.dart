@@ -1,14 +1,13 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/models/product_model.dart';
-import '../../../../shared/widgets/app_image_view.dart';
 import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
-import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../cart/presentation/controllers/cart_controller.dart';
 import '../../../catalog/presentation/controllers/catalog_controller.dart';
 
@@ -69,13 +68,11 @@ class _MaterialDetailsScreenState extends ConsumerState<MaterialDetailsScreen> {
                         aspectRatio: 1.1,
                         child: Stack(
                           children: [
-                            AppImageView(
+                            CachedNetworkImage(
                               imageUrl: images[_activeImageIndex],
-                              materialName: product.name,
-                              categoryName: product.category?.name,
                               width: double.infinity,
-                              height: double.infinity,
                               fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) => const Icon(Icons.broken_image, size: 40),
                             ),
                             Positioned(
                               top: 16,
@@ -117,12 +114,7 @@ class _MaterialDetailsScreenState extends ConsumerState<MaterialDetailsScreen> {
                                   ),
                                 ),
                                 clipBehavior: Clip.antiAlias,
-                                child: AppImageView(
-                                  imageUrl: images[idx],
-                                  materialName: product.name,
-                                  categoryName: product.category?.name,
-                                  fit: BoxFit.cover,
-                                ),
+                                child: CachedNetworkImage(imageUrl: images[idx], fit: BoxFit.cover),
                               ),
                             ),
                           ),
@@ -273,16 +265,6 @@ class _MaterialDetailsScreenState extends ConsumerState<MaterialDetailsScreen> {
                         icon: Icons.add_shopping_cart,
                         onPressed: product.inStock
                             ? () async {
-                                final auth = ref.read(authControllerProvider);
-                                if (!auth.isAuthenticated || auth.user?.role != 'BUYER') {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text('Please sign in with a Buyer account to add materials to cart.'),
-                                      action: SnackBarAction(label: 'Sign In', textColor: AppTheme.accentOrange, onPressed: () => context.push('/login')),
-                                    ),
-                                  );
-                                  return;
-                                }
                                 final ok = await ref.read(cartControllerProvider.notifier).addToCart(
                                   product.id,
                                   quantity: _orderQty,

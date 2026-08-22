@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/storage/storage_service.dart';
 import '../../../../shared/models/user_model.dart';
@@ -10,19 +9,12 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(client);
 });
 
-// Google Sign-In instance configured with server client ID for ID token
-final _googleSignIn = GoogleSignIn(
-  serverClientId: '764795198689-41h522pnno7r3ifmb6im3iu12418m31f.apps.googleusercontent.com',
-  scopes: ['email', 'profile'],
-);
-
 class AuthState {
   final UserModel? user;
   final String? token;
   final bool isLoading;
   final String? error;
   final String activeRole;
-  final bool needsRoleSelection;
 
   AuthState({
     this.user,
@@ -30,10 +22,9 @@ class AuthState {
     this.isLoading = false,
     this.error,
     this.activeRole = 'BUYER',
-    this.needsRoleSelection = false,
   });
 
-  bool get isAuthenticated => user != null && token != null && token!.isNotEmpty;
+  bool get isAuthenticated => token != null && token!.isNotEmpty && user != null;
 
   AuthState copyWith({
     UserModel? user,
@@ -41,7 +32,6 @@ class AuthState {
     bool? isLoading,
     String? error,
     String? activeRole,
-    bool? needsRoleSelection,
   }) {
     return AuthState(
       user: user ?? this.user,
@@ -49,7 +39,6 @@ class AuthState {
       isLoading: isLoading ?? this.isLoading,
       error: error,
       activeRole: activeRole ?? this.activeRole,
-      needsRoleSelection: needsRoleSelection ?? this.needsRoleSelection,
     );
   }
 }
@@ -68,266 +57,70 @@ class AuthController extends StateNotifier<AuthState> {
     final savedRole = _storage.getActiveRole() ?? 'BUYER';
 
     if (token != null && token.isNotEmpty) {
-      state = state.copyWith(token: token, activeRole: savedRole);
       try {
+        state = state.copyWith(token: token, activeRole: savedRole);
         final user = await _repo.getMe();
-        final effectiveRole = user.role.isNotEmpty ? user.role : savedRole;
-        await _storage.saveActiveRole(effectiveRole);
-        state = state.copyWith(user: user, activeRole: effectiveRole, isLoading: false);
+        state = state.copyWith(user: user, isLoading: false);
       } catch (e) {
-        final errStr = e.toString().toLowerCase();
-        if (errStr.contains('401') || errStr.contains('unauthorized') || errStr.contains('invalid token')) {
-          await _storage.clearToken();
-          state = state.copyWith(token: null, user: null, isLoading: false);
-        } else {
-          // Keep session intact across offline/network reconnects
-          final fallbackUser = UserModel(
-            id: 'cached_user',
-            name: 'Revola Member',
-            email: '',
-            role: savedRole,
-          );
-          state = state.copyWith(user: fallbackUser, activeRole: savedRole, isLoading: false);
-        }
+        await _storage.clearToken();
+        state = state.copyWith(token: null, user: null, isLoading: false);
       }
     } else {
       state = state.copyWith(isLoading: false);
     }
   }
 
-  Future<bool> login(String identifier, String password) async {
+  Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final res = await _repo.login(identifier, password);
-      final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
-      final rawUser = res['user'] ?? res['data']?['user'];
-      final user = rawUser is Map<String, dynamic>
-          ? UserModel.fromJson(rawUser)
-          : UserModel(id: '1', name: 'User', email: identifier, role: 'BUYER');
-
-      if (token.isNotEmpty) await _storage.saveToken(token);
-      await _storage.saveActiveRole(user.role);
-
-      state = state.copyWith(token: token, user: user, activeRole: user.role, isLoading: false);
-      return true;
-    } catch (e) {
-      final msg = e.toString().replaceAll('Exception: ', '');
-      state = state.copyWith(isLoading: false, error: msg);
-      return false;
-    }
-  }
-
-  Future<bool> register({
-    required String username,
-    required String email,
-    required String password,
-    String? name,
-    String role = 'BUYER',
-    String? phoneNumber,
-  }) async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      final res = await _repo.register(
-        username: username,
-        email: email,
-        password: password,
-        name: name,
-        role: role,
-        phoneNumber: phoneNumber,
-      );
-      final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
-      final rawUser = res['user'] ?? res['data']?['user'];
-      final user = rawUser is Map<String, dynamic>
-          ? UserModel.fromJson(rawUser)
-          : UserModel(id: '1', name: username, username: username, email: email, role: role);
-
-      if (token.isNotEmpty) await _storage.saveToken(token);
-      await _storage.saveActiveRole(user.role);
-
-      state = state.copyWith(token: token, user: user, activeRole: user.role, isLoading: false);
-      return true;
-    } catch (e) {
-      final msg = e.toString().replaceAll('Exception: ', '');
-      state = state.copyWith(isLoading: false, error: msg);
-      return false;
-    }
-  }
-
-  Future<bool> updateProfile({
-    String? name,
-    String? username,
-    String? phoneNumber,
-    String? avatar,
-  }) async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      final updatedUser = await _repo.updateProfile(
-        name: name,
-        username: username,
-        phoneNumber: phoneNumber,
-        avatar: avatar,
-      );
-      state = state.copyWith(user: updatedUser, isLoading: false);
-      return true;
-    } catch (e) {
-      final msg = e.toString().replaceAll('Exception: ', '');
-      state = state.copyWith(isLoading: false, error: msg);
-      return false;
-    }
-  }
-
-  Future<bool> uploadAvatar(String filePath) async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      final avatarUrl = await _repo.uploadAvatar(filePath);
-      if (avatarUrl.isNotEmpty && state.user != null) {
-        final updated = UserModel(
-          id: state.user!.id,
-          name: state.user!.name,
-          username: state.user!.username,
-          email: state.user!.email,
-          avatar: avatarUrl,
-          role: state.user!.role,
-          roles: state.user!.roles,
-          isSellerApproved: state.user!.isSellerApproved,
-          phoneNumber: state.user!.phoneNumber,
-          sellerProfile: state.user!.sellerProfile,
-        );
-        state = state.copyWith(user: updated, isLoading: false);
-        return true;
-      }
-      state = state.copyWith(isLoading: false);
-      return true;
-    } catch (e) {
-      final msg = e.toString().replaceAll('Exception: ', '');
-      state = state.copyWith(isLoading: false, error: msg);
-      return false;
-    }
-  }
-
-  Future<bool> updatePassword({
-    required String currentPassword,
-    required String newPassword,
-  }) async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      await _repo.updatePassword(
-        currentPassword: currentPassword,
-        newPassword: newPassword,
-      );
-      state = state.copyWith(isLoading: false);
-      return true;
-    } catch (e) {
-      final msg = e.toString().replaceAll('Exception: ', '');
-      state = state.copyWith(isLoading: false, error: msg);
-      return false;
-    }
-  }
-
-  Future<String> forgotPassword(String identifier) async {
-    try {
-      return await _repo.forgotPassword(identifier);
-    } catch (e) {
-      return e.toString().replaceAll('Exception: ', '');
-    }
-  }
-
-  /// Google Sign-In with automatic fallback
-  Future<bool> loginWithGoogle({
-    String? credential,
-    String? accessToken,
-    String? email,
-    String? name,
-    String? role,
-  }) async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      String? gEmail = email;
-      String? gName = name;
-      String? gId;
-      String? gAvatar;
-      String? idToken = credential;
-      String? gAccessToken = accessToken;
-
-      try {
-        await _googleSignIn.signOut().catchError((_) {});
-        final googleUser = await _googleSignIn.signIn();
-        if (googleUser != null) {
-          gEmail = googleUser.email;
-          gName = googleUser.displayName;
-          gId = googleUser.id;
-          gAvatar = googleUser.photoUrl;
-
-          final googleAuth = await googleUser.authentication;
-          idToken = googleAuth.idToken;
-          gAccessToken = googleAuth.accessToken;
-        }
-      } catch (gErr) {
-        // ApiException 10 happens when SHA-1 is not registered in Google Cloud Console
-        if (gEmail == null || gEmail.isEmpty) {
-          final ts = DateTime.now().millisecondsSinceEpoch.toString().substring(7);
-          gEmail = 'adama.user$ts@gmail.com';
-          gName = 'Adama Google User';
-          gId = 'google-$ts';
-        }
-      }
-
-      // If user cancelled explicitly and no email is available
-      if (gEmail == null || gEmail.isEmpty) {
-        final ts = DateTime.now().millisecondsSinceEpoch.toString().substring(7);
-        gEmail = 'adama.user$ts@gmail.com';
-        gName = 'Adama Google User';
-      }
-
-      if (gName == null || gName.isEmpty) {
-        gName = gEmail.contains('@') ? gEmail.split('@').first : 'Google User';
-      }
-
-      final res = await _repo.googleAuth(
-        credential: idToken,
-        accessToken: gAccessToken,
-        email: gEmail,
-        name: gName,
-        googleId: gId,
-        avatar: gAvatar,
-        role: role,
-      );
-
-      final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
-      final rawUser = res['user'] ?? res['data']?['user'];
-      final user = rawUser is Map<String, dynamic>
-          ? UserModel.fromJson(rawUser)
-          : (rawUser is Map ? UserModel.fromJson(Map<String, dynamic>.from(rawUser)) : UserModel(id: '1', name: gName, email: gEmail, role: role ?? 'BUYER'));
-
-      final isNew = res['isNewUser'] == true;
-      final bool hasSellerProfile = user.sellerProfile != null || (rawUser is Map && rawUser['sellerProfile'] != null);
-      final bool hasPhoneNumber = (rawUser is Map && rawUser['phoneNumber'] != null && rawUser['phoneNumber'].toString().trim().isNotEmpty);
-      final needsRole = (role != 'SELLER' && user.role != 'SELLER') && (isNew || (!hasSellerProfile && !hasPhoneNumber));
-
-      if (token.isNotEmpty) await _storage.saveToken(token);
+      final res = await _repo.login(email, password);
+      final token = res['token'] ?? res['data']?['token'];
+      final user = UserModel.fromJson(res['user'] ?? res['data']?['user']);
+      
+      await _storage.saveToken(token);
       await _storage.saveActiveRole(user.role);
 
       state = state.copyWith(
         token: token,
         user: user,
         activeRole: user.role,
-        needsRoleSelection: needsRole,
         isLoading: false,
       );
       return true;
     } catch (e) {
-      final msg = e.toString().replaceAll('Exception: ', '');
-      state = state.copyWith(isLoading: false, error: msg);
+      state = state.copyWith(isLoading: false, error: e.toString());
       return false;
     }
   }
 
-  Future<bool> completeOnboarding(Map<String, dynamic> payload) async {
+  Future<bool> register({
+    required String name,
+    required String email,
+    required String password,
+    String role = 'BUYER',
+    String? phoneNumber,
+  }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final user = await _repo.completeOnboarding(payload);
+      final res = await _repo.register(
+        name: name,
+        email: email,
+        password: password,
+        role: role,
+        phoneNumber: phoneNumber,
+      );
+      final token = res['token'] ?? res['data']?['token'];
+      final user = UserModel.fromJson(res['user'] ?? res['data']?['user']);
+
+      await _storage.saveToken(token);
       await _storage.saveActiveRole(user.role);
-      state = state.copyWith(user: user, activeRole: user.role, needsRoleSelection: false, isLoading: false);
+
+      state = state.copyWith(
+        token: token,
+        user: user,
+        activeRole: user.role,
+        isLoading: false,
+      );
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -335,22 +128,13 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> switchActiveRole(String role) async => switchRole(role);
-
-  Future<void> switchRole(String role) async {
-    state = state.copyWith(isLoading: true);
-    try {
-      final user = await _repo.selectRole(role);
-      await _storage.saveActiveRole(role);
-      state = state.copyWith(user: user, activeRole: role, isLoading: false);
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
-    }
+  Future<void> switchActiveRole(String newRole) async {
+    await _storage.saveActiveRole(newRole);
+    state = state.copyWith(activeRole: newRole);
   }
 
   Future<void> logout() async {
-    await _googleSignIn.signOut().catchError((_) {});
-    await _storage.clearSession();
+    await _storage.clearToken();
     state = AuthState();
   }
 }

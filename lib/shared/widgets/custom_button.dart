@@ -31,26 +31,15 @@ class CustomButton extends StatelessWidget {
           onPressed: isLoading ? null : onPressed,
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: AppTheme.borderColor, width: 1.5),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
           child: isLoading
               ? const SpinKitThreeBounce(color: AppTheme.primaryBlue, size: 20)
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    if (icon != null) ...[
-                      Icon(icon, size: 18),
-                      const SizedBox(width: 8),
-                    ],
-                    Text(
-                      text,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
-                    ),
+                    if (icon != null) ...[Icon(icon, size: 18), const SizedBox(width: 8)],
+                    Text(text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   ],
                 ),
         ),
@@ -65,27 +54,15 @@ class CustomButton extends StatelessWidget {
           backgroundColor: backgroundColor ?? AppTheme.primaryBlue,
           foregroundColor: Colors.white,
           elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         child: isLoading
             ? const SpinKitThreeBounce(color: Colors.white, size: 20)
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (icon != null) ...[
-                    Icon(icon, size: 18, color: Colors.white),
-                    const SizedBox(width: 8),
-                  ],
-                  Text(
-                    text,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      color: Colors.white,
-                    ),
-                  ),
+                  if (icon != null) ...[Icon(icon, size: 18, color: Colors.white), const SizedBox(width: 8)],
+                  Text(text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
                 ],
               ),
       ),

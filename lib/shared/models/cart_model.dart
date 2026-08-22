@@ -18,14 +18,9 @@ class CartItemModel {
   factory CartItemModel.fromJson(Map<String, dynamic> json) {
     return CartItemModel(
       id: json['_id'] ?? json['id'] ?? '',
-      product: ProductModel.fromJson(
-        json['product'] is Map<String, dynamic> ? json['product'] : {},
-      ),
+      product: ProductModel.fromJson(json['product'] is Map<String, dynamic> ? json['product'] : {}),
       quantity: (json['quantity'] as num?)?.toInt() ?? 1,
-      priceAtAddition:
-          (json['priceAtAddition'] as num?)?.toDouble() ??
-          (json['product']?['price'] as num?)?.toDouble() ??
-          0.0,
+      priceAtAddition: (json['priceAtAddition'] as num?)?.toDouble() ?? (json['product']?['price'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }
@@ -40,11 +35,10 @@ class CartModel {
   int get totalItemsCount => items.fold(0, (sum, item) => sum + item.quantity);
 
   factory CartModel.fromJson(Map<String, dynamic> json) {
-    final list =
-        (json['items'] as List?)
-            ?.map((e) => CartItemModel.fromJson(e))
-            .toList() ??
-        [];
-    return CartModel(id: json['_id'] ?? json['id'] ?? '', items: list);
+    final list = (json['items'] as List?)?.map((e) => CartItemModel.fromJson(e)).toList() ?? [];
+    return CartModel(
+      id: json['_id'] ?? json['id'] ?? '',
+      items: list,
+    );
   }
 }

@@ -6,18 +6,12 @@ class ProductLocation {
   final String city;
   final List<double>? coordinates; // [lng, lat]
 
-  ProductLocation({
-    required this.subCity,
-    required this.city,
-    this.coordinates,
-  });
+  ProductLocation({required this.subCity, required this.city, this.coordinates});
 
   factory ProductLocation.fromJson(Map<String, dynamic> json) {
     List<double>? coords;
     if (json['coordinates'] != null && json['coordinates'] is List) {
-      coords = (json['coordinates'] as List)
-          .map((e) => (e as num).toDouble())
-          .toList();
+      coords = (json['coordinates'] as List).map((e) => (e as num).toDouble()).toList();
     }
     return ProductLocation(
       subCity: json['subCity'] ?? 'Adama',
@@ -106,45 +100,7 @@ class ProductModel {
   });
 
   bool get inStock => quantity > 0;
-  String get primaryImage {
-    if (images.isNotEmpty && images.first.trim().isNotEmpty) {
-      return images.first;
-    }
-    final catName = (category?.name ?? '').toLowerCase();
-    final prodName = name.toLowerCase();
-
-    if (catName.contains('wood') ||
-        prodName.contains('wood') ||
-        prodName.contains('pallet') ||
-        prodName.contains('timber')) {
-      return 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80';
-    }
-    if (catName.contains('metal') ||
-        prodName.contains('steel') ||
-        prodName.contains('pipe') ||
-        prodName.contains('sheet')) {
-      return 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=600&auto=format&fit=crop&q=80';
-    }
-    if (catName.contains('electronic') ||
-        prodName.contains('circuit') ||
-        prodName.contains('wire') ||
-        prodName.contains('motor')) {
-      return 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80';
-    }
-    if (catName.contains('furnit') ||
-        prodName.contains('desk') ||
-        prodName.contains('chair') ||
-        prodName.contains('door')) {
-      return 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=600&auto=format&fit=crop&q=80';
-    }
-    if (catName.contains('plastic') ||
-        prodName.contains('plastic') ||
-        prodName.contains('barrel') ||
-        prodName.contains('crate')) {
-      return 'https://images.unsplash.com/photo-1584473457406-6240486418e9?w=600&auto=format&fit=crop&q=80';
-    }
-    return 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=600&auto=format&fit=crop&q=80';
-  }
+  String get primaryImage => images.isNotEmpty ? images.first : 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&auto=format&fit=crop&q=80';
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     CategoryModel? cat;
@@ -190,9 +146,7 @@ class ProductModel {
       approvalStatus: json['approvalStatus'] ?? 'APPROVED',
       rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
       reviewsCount: (json['reviewsCount'] as num?)?.toInt() ?? 0,
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'])
-          : null,
+      createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null,
     );
   }
 }

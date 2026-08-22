@@ -30,13 +30,9 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (DioException e, handler) {
-          String message =
-              'Something went wrong. Please check your connection.';
+          String message = 'Something went wrong. Please check your connection.';
           if (e.response?.data != null && e.response?.data is Map) {
-            message =
-                e.response?.data['message'] ??
-                e.response?.data['error'] ??
-                message;
+            message = e.response?.data['message'] ?? e.response?.data['error'] ?? message;
           }
           return handler.reject(
             DioException(
@@ -53,10 +49,7 @@ class ApiClient {
     );
   }
 
-  Future<Response> get(
-    String path, {
-    Map<String, dynamic>? queryParameters,
-  }) async {
+  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
     try {
       return await dio.get(path, queryParameters: queryParameters);
     } on DioException catch (e) {
@@ -64,11 +57,7 @@ class ApiClient {
     }
   }
 
-  Future<Response> post(
-    String path, {
-    dynamic data,
-    Map<String, dynamic>? queryParameters,
-  }) async {
+  Future<Response> post(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
     try {
       return await dio.post(path, data: data, queryParameters: queryParameters);
     } on DioException catch (e) {
@@ -76,11 +65,7 @@ class ApiClient {
     }
   }
 
-  Future<Response> put(
-    String path, {
-    dynamic data,
-    Map<String, dynamic>? queryParameters,
-  }) async {
+  Future<Response> put(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
     try {
       return await dio.put(path, data: data, queryParameters: queryParameters);
     } on DioException catch (e) {
@@ -88,17 +73,9 @@ class ApiClient {
     }
   }
 
-  Future<Response> delete(
-    String path, {
-    dynamic data,
-    Map<String, dynamic>? queryParameters,
-  }) async {
+  Future<Response> delete(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
     try {
-      return await dio.delete(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-      );
+      return await dio.delete(path, data: data, queryParameters: queryParameters);
     } on DioException catch (e) {
       throw e.error as ApiException;
     }

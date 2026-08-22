@@ -1,93 +1,54 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
-import '../../../core/network/api_exception.dart';
-import '../../../core/providers/core_providers.dart';
 import '../../../shared/models/dispute_model.dart';
 import '../../../shared/models/order_model.dart';
-
-final orderRepositoryProvider = Provider<OrderRepository>((ref) {
-  final client = ref.watch(apiClientProvider);
-  return OrderRepository(client);
-});
 
 class OrderRepository {
   final ApiClient _apiClient;
 
   OrderRepository(this._apiClient);
 
-  Future<double> estimateDeliveryFee({
+  Future<Map<String, dynamic>> estimateDeliveryFee({
     required double latitude,
     required double longitude,
-    int? totalQuantity,
-    List<String>? productIds,
+    required List<String> productIds,
   }) async {
-    try {
-      final res = await _apiClient.post('/orders/estimate-delivery-fee', data: {
-        'address': {
-          'latitude': latitude,
-          'longitude': longitude,
-          'city': 'Adama',
-        },
-        'totalQuantity': totalQuantity ?? 1,
-      });
-      final fee = res.data['deliveryFee'] ?? res.data['data']?['deliveryFee'];
-      return (fee as num?)?.toDouble() ?? 150.0;
-    } catch (_) {
-      return 150.0;
-    }
+    final res = await _apiClient.post(ApiEndpoints.estimateDeliveryFee, data: {
+      'latitude': latitude,
+      'longitude': longitude,
+      'productIds': productIds,
+    });
+    return res.data;
   }
 
-  Future<Map<String, dynamic>> checkout({
-    required Map<String, dynamic> deliveryAddress,
-    String paymentMethod = 'CHAPA',
+  Future<OrderModel> checkout({
+    required String paymentMethod,
+    required String deliveryAddress,
+    required List<double> deliveryCoordinates,
+    required String contactPhone,
     String? deliveryNotes,
   }) async {
-    final res = await _apiClient.post('/orders/checkout', data: {
-      'paymentMethod': 'CHAPA',
+    final res = await _apiClient.post(ApiEndpoints.checkout, data: {
+      'paymentMethod': paymentMethod,
       'deliveryAddress': deliveryAddress,
+      'deliveryCoordinates': deliveryCoordinates,
+      'contactPhone': contactPhone,
       if (deliveryNotes != null) 'deliveryNotes': deliveryNotes,
     });
-
-    final orderJson = res.data['order'] ?? res.data['data'] ?? res.data;
-    final paymentUrl = res.data['paymentUrl'] ?? res.data['checkoutUrl'] ?? '';
-
-    return {
-      'order': orderJson,
-      'paymentUrl': paymentUrl,
-    };
+    final json = res.data['order'] ?? res.data['data'] ?? res.data;
+    return OrderModel.fromJson(json);
   }
 
   Future<List<OrderModel>> getMyOrders() async {
-    try {
-      final res = await _apiClient.get(ApiEndpoints.myBuyerOrders);
-      final list = res.data['orders'] ?? res.data['data'] ?? [];
-      if (list is List) {
-        return list.map((e) => OrderModel.fromJson(e)).toList();
-      }
-      return [];
-    } catch (e) {
-      if (e is ApiException && e.statusCode == 401) {
-        return [];
-      }
-      rethrow;
-    }
+    final res = await _apiClient.get(ApiEndpoints.myBuyerOrders);
+    final list = res.data['orders'] ?? res.data['data'] ?? [];
+    return (list as List).map((e) => OrderModel.fromJson(e)).toList();
   }
 
   Future<List<OrderModel>> getSellerOrders() async {
-    try {
-      final res = await _apiClient.get(ApiEndpoints.mySellerOrders);
-      final list = res.data['orders'] ?? res.data['data'] ?? [];
-      if (list is List) {
-        return list.map((e) => OrderModel.fromJson(e)).toList();
-      }
-      return [];
-    } catch (e) {
-      if (e is ApiException && e.statusCode == 401) {
-        return [];
-      }
-      rethrow;
-    }
+    final res = await _apiClient.get(ApiEndpoints.mySellerOrders);
+    final list = res.data['orders'] ?? res.data['data'] ?? [];
+    return (list as List).map((e) => OrderModel.fromJson(e)).toList();
   }
 
   Future<OrderModel> getOrderByTracking(String trackingNumber) async {

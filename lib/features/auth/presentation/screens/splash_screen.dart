@@ -20,22 +20,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _checkAuth() async {
-    // Give auth initialization time to resolve stored secure tokens
-    await Future.delayed(const Duration(milliseconds: 1200));
+    await Future.delayed(const Duration(milliseconds: 1500));
     if (!mounted) return;
 
     final authState = ref.read(authControllerProvider);
     if (authState.isAuthenticated) {
-      final role = (authState.user?.role ?? authState.activeRole).toUpperCase();
-      if (role == 'SELLER') {
-        context.go('/seller-dashboard');
-      } else if (role == 'ADMIN') {
-        context.go('/admin-dashboard');
-      } else if (role == 'STAFF') {
-        context.go('/staff-dashboard');
-      } else {
-        context.go('/home');
-      }
+      context.go('/home');
     } else {
       context.go('/onboarding');
     }

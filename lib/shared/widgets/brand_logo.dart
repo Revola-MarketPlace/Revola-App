@@ -51,7 +51,9 @@ class BrandLogo extends StatelessWidget {
                   ),
                   const TextSpan(
                     text: 'vola',
-                    style: TextStyle(color: AppTheme.accentOrange),
+                    style: TextStyle(
+                      color: AppTheme.accentOrange,
+                    ),
                   ),
                 ],
               ),

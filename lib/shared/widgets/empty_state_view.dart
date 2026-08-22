@@ -52,7 +52,11 @@ class EmptyStateView extends StatelessWidget {
             ),
             if (actionText != null && onAction != null) ...[
               const SizedBox(height: 20),
-              CustomButton(text: actionText!, onPressed: onAction, height: 44),
+              CustomButton(
+                text: actionText!,
+                onPressed: onAction,
+                height: 44,
+              ),
             ],
           ],
         ),
