@@ -24,7 +24,7 @@ class AuthState {
     this.activeRole = 'BUYER',
   });
 
-  bool get isAuthenticated => user != null;
+  bool get isAuthenticated => user != null && token != null && token!.isNotEmpty;
 
   AuthState copyWith({
     UserModel? user,
@@ -60,7 +60,7 @@ class AuthController extends StateNotifier<AuthState> {
       try {
         state = state.copyWith(token: token, activeRole: savedRole);
         final user = await _repo.getMe();
-        state = state.copyWith(user: user, isLoading: false);
+        state = state.copyWith(user: user, activeRole: user.role, isLoading: false);
       } catch (e) {
         await _storage.clearToken();
         state = state.copyWith(token: null, user: null, isLoading: false);
@@ -74,15 +74,50 @@ class AuthController extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final res = await _repo.login(email, password);
-      final rawToken = res['token'] ?? res['accessToken'] ?? res['data']?['token'] ?? res['data']?['accessToken'];
-      final token = rawToken?.toString() ?? 'session_active';
+      final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
       
       final rawUser = res['user'] ?? res['data']?['user'];
       final user = rawUser is Map<String, dynamic>
           ? UserModel.fromJson(rawUser)
           : UserModel(id: '1', name: 'User', email: email, role: 'BUYER');
 
-      await _storage.saveToken(token);
+      if (token.isNotEmpty) {
+        await _storage.saveToken(token);
+      }
+      await _storage.saveActiveRole(user.role);
+
+      state = state.copyWith(
+        token: token,
+        user: user,
+        activeRole: user.role,
+        isLoading: false,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> loginWithGoogle({String? credential, String? accessToken, String? email, String? name}) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final res = await _repo.googleAuth(
+        credential: credential,
+        accessToken: accessToken,
+        email: email,
+        name: name,
+      );
+
+      final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
+      final rawUser = res['user'] ?? res['data']?['user'];
+      final user = rawUser is Map<String, dynamic>
+          ? UserModel.fromJson(rawUser)
+          : UserModel(id: '1', name: name ?? 'Google User', email: email ?? '', role: 'BUYER');
+
+      if (token.isNotEmpty) {
+        await _storage.saveToken(token);
+      }
       await _storage.saveActiveRole(user.role);
 
       state = state.copyWith(
@@ -114,15 +149,16 @@ class AuthController extends StateNotifier<AuthState> {
         role: role,
         phoneNumber: phoneNumber,
       );
-      final rawToken = res['token'] ?? res['accessToken'] ?? res['data']?['token'] ?? res['data']?['accessToken'];
-      final token = rawToken?.toString() ?? 'session_active';
+      final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
       
       final rawUser = res['user'] ?? res['data']?['user'];
       final user = rawUser is Map<String, dynamic>
           ? UserModel.fromJson(rawUser)
           : UserModel(id: '1', name: name, email: email, role: role);
 
-      await _storage.saveToken(token);
+      if (token.isNotEmpty) {
+        await _storage.saveToken(token);
+      }
       await _storage.saveActiveRole(user.role);
 
       state = state.copyWith(
