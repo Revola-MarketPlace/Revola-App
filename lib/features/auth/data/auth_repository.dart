@@ -38,6 +38,7 @@ class AuthRepository {
     String? name,
     String? googleId,
     String? avatar,
+    String? role,
   }) async {
     final res = await _apiClient.post(ApiEndpoints.googleAuth, data: {
       if (credential != null) 'credential': credential,
@@ -46,6 +47,7 @@ class AuthRepository {
       if (name != null) 'name': name,
       if (googleId != null) 'googleId': googleId,
       if (avatar != null) 'avatar': avatar,
+      if (role != null) 'role': role,
     });
 
     final data = Map<String, dynamic>.from(res.data is Map ? res.data : {});

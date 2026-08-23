@@ -21,13 +21,13 @@ class SellerProfile {
     if (json == null) return SellerProfile();
 
     List<double>? coords;
-    if (json['shopLocation'] != null &&
-        json['shopLocation'] is Map<String, dynamic> &&
-        json['shopLocation']['coordinates'] != null &&
-        json['shopLocation']['coordinates'] is List) {
-      coords = (json['shopLocation']['coordinates'] as List)
-          .map((e) => (e as num?)?.toDouble() ?? 0.0)
-          .toList();
+    if (json['shopLocation'] != null && json['shopLocation'] is Map) {
+      final loc = Map<String, dynamic>.from(json['shopLocation'] as Map);
+      if (loc['coordinates'] is List) {
+        coords = (loc['coordinates'] as List)
+            .map((e) => (e as num?)?.toDouble() ?? 0.0)
+            .toList();
+      }
     }
     return SellerProfile(
       shopName: json['shopName']?.toString(),
@@ -97,8 +97,8 @@ class UserModel {
     }
 
     SellerProfile? profile;
-    if (json['sellerProfile'] != null && json['sellerProfile'] is Map<String, dynamic>) {
-      profile = SellerProfile.fromJson(json['sellerProfile'] as Map<String, dynamic>);
+    if (json['sellerProfile'] != null && json['sellerProfile'] is Map) {
+      profile = SellerProfile.fromJson(Map<String, dynamic>.from(json['sellerProfile'] as Map));
     }
 
     return UserModel(
