@@ -1,10 +1,12 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/custom_button.dart';
 
 final singleOrderDetailsProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, orderId) async {
   final client = ref.watch(apiClientProvider);
@@ -33,15 +35,26 @@ class LiveTrackingScreen extends ConsumerWidget {
     final buyerLoc = LatLng(AppConstants.adamaCenterLat, AppConstants.adamaCenterLng);
     final driverLoc = LatLng(AppConstants.adamaCenterLat + 0.008, AppConstants.adamaCenterLng + 0.006);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Live Delivery Tracking'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.textPrimary,
-        elevation: 1,
-      ),
-      body: Stack(
-        children: [
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.go('/home');
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Live Delivery Tracking'),
+          backgroundColor: Colors.white,
+          foregroundColor: AppTheme.textPrimary,
+          elevation: 1,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/home'),
+          ),
+        ),
+        body: Stack(
+          children: [
           FlutterMap(
             options: MapOptions(
               initialCenter: driverLoc,
@@ -149,6 +162,36 @@ class LiveTrackingScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => context.go('/home'),
+                              icon: const Icon(Icons.storefront_outlined, size: 16),
+                              label: const Text('Back to Home', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppTheme.primaryBlue,
+                                side: const BorderSide(color: AppTheme.primaryBlue),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => context.push('/orders'),
+                              icon: const Icon(Icons.receipt_long_outlined, size: 16),
+                              label: const Text('All Orders', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryBlue,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 );
@@ -162,6 +205,7 @@ class LiveTrackingScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

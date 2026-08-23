@@ -68,13 +68,27 @@ class AuthController extends StateNotifier<AuthState> {
     final savedRole = _storage.getActiveRole() ?? 'BUYER';
 
     if (token != null && token.isNotEmpty) {
+      state = state.copyWith(token: token, activeRole: savedRole);
       try {
-        state = state.copyWith(token: token, activeRole: savedRole);
         final user = await _repo.getMe();
-        state = state.copyWith(user: user, activeRole: user.role, isLoading: false);
+        final effectiveRole = user.role.isNotEmpty ? user.role : savedRole;
+        await _storage.saveActiveRole(effectiveRole);
+        state = state.copyWith(user: user, activeRole: effectiveRole, isLoading: false);
       } catch (e) {
-        await _storage.clearToken();
-        state = state.copyWith(token: null, user: null, isLoading: false);
+        final errStr = e.toString().toLowerCase();
+        if (errStr.contains('401') || errStr.contains('unauthorized') || errStr.contains('invalid token')) {
+          await _storage.clearToken();
+          state = state.copyWith(token: null, user: null, isLoading: false);
+        } else {
+          // Keep session intact across offline/network reconnects
+          final fallbackUser = UserModel(
+            id: 'cached_user',
+            name: 'Revola Member',
+            email: '',
+            role: savedRole,
+          );
+          state = state.copyWith(user: fallbackUser, activeRole: savedRole, isLoading: false);
+        }
       }
     } else {
       state = state.copyWith(isLoading: false);

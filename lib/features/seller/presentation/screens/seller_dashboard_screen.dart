@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/providers/core_providers.dart';
@@ -9,6 +9,7 @@ import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/empty_state_view.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../controllers/seller_controller.dart';
 
 final sellerEarningsStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
@@ -72,6 +73,31 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> w
             icon: const Icon(Icons.add_circle, color: AppTheme.primaryBlue, size: 28),
             tooltip: 'Add Listing',
             onPressed: () => context.push('/seller-add-material'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Color(0xFFEF4444), size: 24),
+            tooltip: 'Sign Out',
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Sign Out'),
+                  content: const Text('Are you sure you want to sign out from the Seller Portal?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true && context.mounted) {
+                await ref.read(authControllerProvider.notifier).logout();
+                if (context.mounted) context.go('/login');
+              }
+            },
           ),
         ],
         bottom: TabBar(
