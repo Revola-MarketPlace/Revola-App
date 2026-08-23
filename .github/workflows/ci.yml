@@ -1,0 +1,28 @@
+name: Revola Mobile CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  flutter-analyze-and-test:
+    name: Flutter Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Verify No Secrets
+        run: |
+          echo "Scanning mobile repository for secret leaks..."
+          ! grep -rn "CHASECK_TEST-[0-9a-zA-Z]" . --exclude-dir=.git || exit 1
+          ! grep -rn "keyPassword=" . --exclude-dir=.git || exit 1
+          echo "No secrets detected."
