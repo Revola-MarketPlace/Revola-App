@@ -1,5 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
@@ -69,6 +71,33 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> wit
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.textPrimary,
         elevation: 1,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Color(0xFFEF4444), size: 24),
+            tooltip: 'Sign Out',
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Staff Sign Out'),
+                  content: const Text('Are you sure you want to sign out from the Staff Hub?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true && context.mounted) {
+                await ref.read(authControllerProvider.notifier).logout();
+                if (context.mounted) context.go('/login');
+              }
+            },
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppTheme.primaryBlue,
