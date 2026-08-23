@@ -350,7 +350,7 @@ class AuthController extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     await _googleSignIn.signOut().catchError((_) {});
-    await _storage.clearToken();
+    await _storage.clearSession();
     state = AuthState();
   }
 }
