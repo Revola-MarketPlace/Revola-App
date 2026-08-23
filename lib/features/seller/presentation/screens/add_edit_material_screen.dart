@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -86,18 +86,14 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
 
     setState(() => _isSubmitting = true);
     try {
+      final sellerRepo = ref.read(sellerRepositoryProvider);
       List<String> images = [];
 
-      // Convert local images or use default
+      // 1. Try uploading local images to backend /products/upload
       if (_pickedImagePaths.isNotEmpty) {
-        for (final path in _pickedImagePaths) {
-          if (!kIsWeb) {
-            final bytes = await File(path).readAsBytes();
-            final base64Str = 'data:image/jpeg;base64,${base64Encode(bytes)}';
-            images.add(base64Str);
-          } else {
-            images.add(path);
-          }
+        final uploaded = await sellerRepo.uploadImages(_pickedImagePaths);
+        if (uploaded.isNotEmpty) {
+          images.addAll(uploaded);
         }
       }
 
@@ -105,14 +101,23 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
         images.add(_imageUrlCtrl.text.trim());
       }
 
-      // Default placeholder if none provided
+      // Default high quality material imagery based on name if no images uploaded
       if (images.isEmpty) {
-        images.add('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&auto=format&fit=crop&q=80');
+        final lower = name.toLowerCase();
+        if (lower.contains('wood') || lower.contains('timber') || lower.contains('pallet')) {
+          images.add('https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80');
+        } else if (lower.contains('metal') || lower.contains('steel') || lower.contains('iron') || lower.contains('pipe')) {
+          images.add('https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=600&auto=format&fit=crop&q=80');
+        } else if (lower.contains('electric') || lower.contains('circuit') || lower.contains('wire') || lower.contains('device')) {
+          images.add('https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80');
+        } else {
+          images.add('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&auto=format&fit=crop&q=80');
+        }
       }
 
-      await ref.read(sellerRepositoryProvider).createProduct({
+      await sellerRepo.createProduct({
         'name': name,
-        'description': _descCtrl.text.trim(),
+        'description': _descCtrl.text.trim().isNotEmpty ? _descCtrl.text.trim() : 'Quality usable material in Adama.',
         'price': price,
         'quantity': qty,
         'condition': _condition,
