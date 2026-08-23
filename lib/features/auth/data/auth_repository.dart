@@ -128,15 +128,13 @@ class AuthRepository {
       final filename = filePath.split(RegExp(r'[\\/]')).last;
       final formData = FormData();
       formData.files.add(
-        MapEntry('images', await MultipartFile.fromFile(filePath, filename: filename)),
+        MapEntry('avatar', await MultipartFile.fromFile(filePath, filename: filename)),
       );
-      final res = await _apiClient.post('${ApiEndpoints.products}/upload', data: formData);
-      final rawList = res.data['urls'] ?? res.data['images'] ?? res.data['data'] ?? [];
-      if (rawList is List && rawList.isNotEmpty) {
-        final avatarUrl = rawList.first.toString();
-        await updateProfile(avatar: avatarUrl);
-        return avatarUrl;
-      }
+      final res = await _apiClient.post('/auth/avatar', data: formData);
+      final avatarUrl = res.data['avatar']?.toString() ??
+          res.data['user']?['avatar']?.toString() ??
+          '';
+      return avatarUrl;
     } catch (_) {}
     return '';
   }
