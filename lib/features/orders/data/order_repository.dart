@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/providers/core_providers.dart';
 import '../../../shared/models/dispute_model.dart';
 import '../../../shared/models/order_model.dart';
@@ -58,15 +59,35 @@ class OrderRepository {
   }
 
   Future<List<OrderModel>> getMyOrders() async {
-    final res = await _apiClient.get(ApiEndpoints.myBuyerOrders);
-    final list = res.data['orders'] ?? res.data['data'] ?? [];
-    return (list as List).map((e) => OrderModel.fromJson(e)).toList();
+    try {
+      final res = await _apiClient.get(ApiEndpoints.myBuyerOrders);
+      final list = res.data['orders'] ?? res.data['data'] ?? [];
+      if (list is List) {
+        return list.map((e) => OrderModel.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        return [];
+      }
+      rethrow;
+    }
   }
 
   Future<List<OrderModel>> getSellerOrders() async {
-    final res = await _apiClient.get(ApiEndpoints.mySellerOrders);
-    final list = res.data['orders'] ?? res.data['data'] ?? [];
-    return (list as List).map((e) => OrderModel.fromJson(e)).toList();
+    try {
+      final res = await _apiClient.get(ApiEndpoints.mySellerOrders);
+      final list = res.data['orders'] ?? res.data['data'] ?? [];
+      if (list is List) {
+        return list.map((e) => OrderModel.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        return [];
+      }
+      rethrow;
+    }
   }
 
   Future<OrderModel> getOrderByTracking(String trackingNumber) async {
