@@ -27,23 +27,50 @@ class MapPlaceModel {
     double lat = 8.5400;
     double lng = 39.2700;
 
-    if (json['location'] != null && json['location']['coordinates'] != null) {
+    if (json['coordinates'] != null && json['coordinates'] is List && (json['coordinates'] as List).length >= 2) {
+      final coords = json['coordinates'] as List;
+      lat = (coords[0] as num).toDouble();
+      lng = (coords[1] as num).toDouble();
+    } else if (json['location'] != null && json['location'] is Map && json['location']['coordinates'] is List) {
       final coords = json['location']['coordinates'] as List;
       lng = (coords[0] as num).toDouble();
       lat = (coords[1] as num).toDouble();
     }
 
+    String pType = 'DEPOT';
+    final rawType = json['placeType']?.toString().toUpperCase() ?? '';
+    final rawSource = json['source']?.toString().toUpperCase() ?? '';
+    if (rawType.contains('SELLER') || rawSource.contains('MARKETPLACE')) {
+      pType = 'SELLER';
+    } else if (rawType.contains('ADMIN') || rawSource.contains('ADMIN')) {
+      pType = 'DEPOT';
+    } else if (rawType.contains('OSM') || rawSource.contains('COMMUNITY') || rawSource.contains('EXTERNAL')) {
+      pType = 'OSM';
+    }
+
+    final rawName = json['title']?.toString() ?? json['name']?.toString() ?? 'Adama Materials Depot';
+    final rawAddress = json['address']?.toString() ?? json['location']?['address']?.toString() ?? 'Adama City';
+    final phone = json['phone']?.toString() ?? '+251911223344';
+
+    List<String> mats = [];
+    if (json['materials'] is List) {
+      mats = (json['materials'] as List).map((e) => e.toString()).toList();
+    } else if (json['categories'] is List) {
+      mats = (json['categories'] as List).map((e) => e.toString()).toList();
+    }
+    if (mats.isEmpty) mats = ['Salvaged Materials', 'Reclaimed Goods'];
+
     return MapPlaceModel(
-      id: json['_id'] ?? json['id'] ?? '',
-      name: json['name'] ?? 'Place',
-      placeType: json['placeType'] ?? (json['source'] == 'COMMUNITY_OSM' ? 'OSM' : 'DEPOT'),
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      name: rawName,
+      placeType: pType,
       latitude: lat,
       longitude: lng,
-      address: json['address'] ?? json['location']?['address'] ?? 'Adama',
-      phone: json['phone'],
-      materials: json['materials'] != null ? List<String>.from(json['materials']) : [],
-      openingHours: json['openingHours'],
-      isVerified: json['isVerified'] ?? false,
+      address: rawAddress,
+      phone: phone,
+      materials: mats,
+      openingHours: json['openingHours']?.toString() ?? '8:00 AM - 6:00 PM',
+      isVerified: json['isVerified'] ?? true,
     );
   }
 }

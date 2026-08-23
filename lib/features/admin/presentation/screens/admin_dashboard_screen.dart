@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -429,14 +429,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                       const SizedBox(height: 6),
                       Text(p.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                     ],
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     Row(
                       children: [
                         Expanded(
                           child: CustomButton(
-                            text: 'Approve',
+                            text: 'Approve Material',
                             backgroundColor: AppTheme.emeraldGreen,
-                            height: 36,
+                            height: 44,
                             onPressed: () async {
                               final client = ref.read(apiClientProvider);
                               await client.post('/admin/products/review', data: {
@@ -447,12 +447,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                             },
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: CustomButton(
-                            text: 'Reject',
+                            text: 'Reject Listing',
                             isOutlined: true,
-                            height: 36,
+                            height: 44,
                             onPressed: () async {
                               final client = ref.read(apiClientProvider);
                               await client.post('/admin/products/review', data: {
@@ -519,20 +519,30 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                         Text('Delivery ID: #${d['_id']?.toString().substring(0, 8).toUpperCase() ?? ''}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(6)),
-                          child: Text(status, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 10, color: AppTheme.primaryBlue)),
+                          decoration: BoxDecoration(
+                            color: status == 'DELIVERED' ? const Color(0xFFDCFCE7) : const Color(0xFFE0F2FE),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            status,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 10,
+                              color: status == 'DELIVERED' ? AppTheme.emeraldGreen : AppTheme.primaryBlue,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text('Delivery Fee: ${Formatters.formatEtb(fee)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppTheme.textPrimary)),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     Row(
                       children: [
                         Expanded(
                           child: CustomButton(
                             text: 'Mark In Transit',
-                            height: 36,
+                            height: 44,
                             backgroundColor: AppTheme.primaryBlue,
                             onPressed: () async {
                               final client = ref.read(apiClientProvider);
@@ -545,11 +555,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                             },
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: CustomButton(
                             text: 'Mark Delivered',
-                            height: 36,
+                            height: 44,
                             backgroundColor: AppTheme.emeraldGreen,
                             onPressed: () async {
                               final client = ref.read(apiClientProvider);

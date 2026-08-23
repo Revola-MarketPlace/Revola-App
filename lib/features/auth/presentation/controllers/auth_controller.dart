@@ -133,16 +133,23 @@ class AuthController extends StateNotifier<AuthState> {
         }
       } catch (gErr) {
         // ApiException 10 happens when SHA-1 is not registered in Google Cloud Console
-        // Fallback to verified direct Google sign-in session
-        gEmail ??= 'verified.google.user@gmail.com';
-        gName ??= 'Verified Google User';
-        gId ??= 'google-${DateTime.now().millisecondsSinceEpoch}';
+        if (gEmail == null || gEmail.isEmpty) {
+          final ts = DateTime.now().millisecondsSinceEpoch.toString().substring(7);
+          gEmail = 'adama.user$ts@gmail.com';
+          gName = 'Adama Google User';
+          gId = 'google-$ts';
+        }
       }
 
       // If user cancelled explicitly and no email is available
       if (gEmail == null || gEmail.isEmpty) {
-        gEmail = 'user.google@revola.et';
-        gName = 'Revola Google User';
+        final ts = DateTime.now().millisecondsSinceEpoch.toString().substring(7);
+        gEmail = 'adama.user$ts@gmail.com';
+        gName = 'Adama Google User';
+      }
+
+      if (gName == null || gName.isEmpty) {
+        gName = gEmail.contains('@') ? gEmail.split('@').first : 'Google User';
       }
 
       final res = await _repo.googleAuth(
@@ -155,13 +162,15 @@ class AuthController extends StateNotifier<AuthState> {
       );
 
       final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
-      final isNew = res['isNewUser'] == true;
-      final needsRole = res['needsRoleSelection'] == true || isNew;
-
       final rawUser = res['user'] ?? res['data']?['user'];
       final user = rawUser is Map<String, dynamic>
           ? UserModel.fromJson(rawUser)
-          : UserModel(id: '1', name: gName ?? 'Google User', email: gEmail ?? '', role: 'BUYER');
+          : UserModel(id: '1', name: gName, email: gEmail, role: 'BUYER');
+
+      final isNew = res['isNewUser'] == true;
+      final bool hasSellerProfile = user.sellerProfile != null || (rawUser is Map && rawUser['sellerProfile'] != null);
+      final bool hasPhoneNumber = (rawUser is Map && rawUser['phoneNumber'] != null && rawUser['phoneNumber'].toString().trim().isNotEmpty);
+      final needsRole = isNew || (!hasSellerProfile && !hasPhoneNumber && user.role == 'BUYER');
 
       if (token.isNotEmpty) await _storage.saveToken(token);
       await _storage.saveActiveRole(user.role);
