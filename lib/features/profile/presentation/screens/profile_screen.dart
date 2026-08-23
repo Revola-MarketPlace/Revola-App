@@ -1,11 +1,310 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/app_image_view.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
+
+  Future<void> _handleChangePhoto(BuildContext context, WidgetRef ref) async {
+    try {
+      final picker = ImagePicker();
+      final source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Update Profile Photo', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined, color: AppTheme.primaryBlue),
+                  title: const Text('Choose from Gallery', style: TextStyle(fontWeight: FontWeight.w700)),
+                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined, color: AppTheme.accentOrange),
+                  title: const Text('Take a Photo', style: TextStyle(fontWeight: FontWeight.w700)),
+                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      if (source == null) return;
+
+      final pickedFile = await picker.pickImage(source: source, maxWidth: 800, maxHeight: 800, imageQuality: 85);
+      if (pickedFile == null) return;
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Uploading profile photo...')),
+        );
+      }
+
+      final success = await ref.read(authControllerProvider.notifier).uploadAvatar(pickedFile.path);
+      if (context.mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile photo updated successfully!'), backgroundColor: Color(0xFF10B981)),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to update photo.'), backgroundColor: Color(0xFFEF4444)),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: const Color(0xFFEF4444)),
+        );
+      }
+    }
+  }
+
+  void _showEditProfileModal(BuildContext context, WidgetRef ref) {
+    final user = ref.read(authControllerProvider).user;
+    final nameCtrl = TextEditingController(text: user?.name ?? '');
+    final usernameCtrl = TextEditingController(text: user?.username ?? user?.displayUsername ?? '');
+    final phoneCtrl = TextEditingController(text: user?.phoneNumber ?? '');
+    bool isSaving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            top: 24,
+            left: 24,
+            right: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Edit Profile Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text('FULL NAME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textSecondary)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'Your display name',
+                    prefixIcon: const Icon(Icons.person_outline, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text('USERNAME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textSecondary)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: usernameCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'e.g. petros123',
+                    prefixIcon: const Icon(Icons.alternate_email, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text('PHONE NUMBER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textSecondary)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    hintText: '+251 91 123 4567',
+                    prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          final name = nameCtrl.text.trim();
+                          final username = usernameCtrl.text.trim();
+                          final phone = phoneCtrl.text.trim();
+
+                          if (name.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please enter your full name.')),
+                            );
+                            return;
+                          }
+
+                          setModalState(() => isSaving = true);
+                          final success = await ref.read(authControllerProvider.notifier).updateProfile(
+                            name: name,
+                            username: username.isNotEmpty ? username : null,
+                            phoneNumber: phone,
+                          );
+
+                          if (context.mounted) {
+                            Navigator.pop(ctx);
+                            if (success) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Profile updated successfully!'), backgroundColor: Color(0xFF10B981)),
+                              );
+                            } else {
+                              final err = ref.read(authControllerProvider).error ?? 'Failed to update profile.';
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(err), backgroundColor: const Color(0xFFEF4444)),
+                              );
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w800)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context, WidgetRef ref) {
+    final curCtrl = TextEditingController();
+    final newCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    bool isUpdating = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: const Row(
+            children: [
+              Icon(Icons.password, color: AppTheme.primaryBlue),
+              SizedBox(width: 8),
+              Text('Change Password', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: curCtrl,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Current Password',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: newCtrl,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'New Password (min 6 chars)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmCtrl,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm New Password',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isUpdating ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
+              onPressed: isUpdating
+                  ? null
+                  : () async {
+                      final cur = curCtrl.text;
+                      final n = newCtrl.text;
+                      final c = confirmCtrl.text;
+
+                      if (cur.isEmpty || n.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please fill all password fields.')),
+                        );
+                        return;
+                      }
+                      if (n.length < 6) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('New password must be at least 6 characters.')),
+                        );
+                        return;
+                      }
+                      if (n != c) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('New passwords do not match.')),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() => isUpdating = true);
+                      final success = await ref.read(authControllerProvider.notifier).updatePassword(
+                        currentPassword: cur,
+                        newPassword: n,
+                      );
+
+                      if (context.mounted) {
+                        Navigator.pop(ctx);
+                        if (success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Password changed successfully!'), backgroundColor: Color(0xFF10B981)),
+                          );
+                        } else {
+                          final err = ref.read(authControllerProvider).error ?? 'Password update failed.';
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(err), backgroundColor: const Color(0xFFEF4444)),
+                          );
+                        }
+                      }
+                    },
+              child: isUpdating
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Update Password', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   void _showAboutRevolaDialog(BuildContext context) {
     showDialog(
@@ -28,55 +327,34 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ],
         ),
-        content: SingleChildScrollView(
+        content: const SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFBBF7D0)),
-                ),
-                child: const Text(
-                  'Revola • Every Good Thing Deserves a Second Life',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                    color: Color(0xFF166534),
-                  ),
-                ),
+              Text(
+                'Revola • Every Good Thing Deserves a Second Life',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF166534)),
               ),
-              const SizedBox(height: 12),
-              const Text(
-                '🌿 Adama Circular Economy',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-              ),
-              const SizedBox(height: 4),
-              const Text(
+              SizedBox(height: 12),
+              Text('🌿 Adama Circular Economy', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+              SizedBox(height: 4),
+              Text(
                 'Revola is Adama City\'s dedicated marketplace for usable surplus materials, reclaimed timber, structural steel, scrap metals, plastics, and appliances.',
                 style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
               ),
-              const SizedBox(height: 12),
-              const Text(
-                '🛡️ 100% Escrow Protection',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-              ),
-              const SizedBox(height: 4),
-              const Text(
+              SizedBox(height: 12),
+              Text('🛡️ 100% Escrow Protection', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+              SizedBox(height: 4),
+              Text(
                 'Buyer payments are held safely in escrow. Sellers receive payouts only after the buyer receives and verifies their materials.',
                 style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
               ),
-              const SizedBox(height: 12),
-              const Text(
-                '🚚 Local Delivery Across Adama',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Serving all 9 subcities: Bole, Aba Geda, Goro, Boku, Kebele 02, Kebele 03, Kebele 04, Industry Zone, and Wonji Road with live GPS driver tracking.',
+              SizedBox(height: 12),
+              Text('🚚 Local Delivery Across Adama', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+              SizedBox(height: 4),
+              Text(
+                'Serving all subcities in Adama with live driver tracking and prompt dispatch.',
                 style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
               ),
             ],
@@ -85,10 +363,7 @@ class ProfileScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text(
-              'Close',
-              style: TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primaryBlue),
-            ),
+            child: const Text('Close', style: TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primaryBlue)),
           ),
         ],
       ),
@@ -101,9 +376,7 @@ class ProfileScreen extends ConsumerWidget {
     } else {
       showModalBottomSheet(
         context: context,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
         builder: (ctx) => Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -112,11 +385,7 @@ class ProfileScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.storefront, size: 48, color: AppTheme.accentOrange),
               const SizedBox(height: 12),
-              const Text(
-                'Become a Verified Seller',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                textAlign: TextAlign.center,
-              ),
+              const Text('Become a Verified Seller', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900), textAlign: TextAlign.center),
               const SizedBox(height: 8),
               const Text(
                 'You are currently signed in as a Buyer. Upgrade your account to sell usable construction materials, timber, steel, and salvage items in Adama.',
@@ -138,10 +407,7 @@ class ProfileScreen extends ConsumerWidget {
                 child: const Text('Set Up Seller Shop Now', style: TextStyle(fontWeight: FontWeight.w800)),
               ),
               const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
-              ),
+              TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary))),
             ],
           ),
         ),
@@ -170,6 +436,8 @@ class ProfileScreen extends ConsumerWidget {
       roleColor = AppTheme.accentOrange;
     }
 
+    final hasAvatar = user?.avatar != null && user!.avatar!.trim().isNotEmpty;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -192,36 +460,111 @@ class ProfileScreen extends ConsumerWidget {
               ),
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundColor: roleColor.withOpacity(0.12),
-                    child: Text(
-                      user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'U',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: roleColor),
-                    ),
+                  Stack(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: roleColor.withOpacity(0.12),
+                          border: Border.all(color: roleColor, width: 2),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: hasAvatar
+                            ? AppImageView(imageUrl: user.avatar!, fit: BoxFit.cover)
+                            : Center(
+                                child: Text(
+                                  user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'U',
+                                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: roleColor),
+                                ),
+                              ),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: () => _handleChangePhoto(context, ref),
+                          child: const CircleAvatar(
+                            radius: 14,
+                            backgroundColor: AppTheme.primaryBlue,
+                            child: Icon(Icons.camera_alt, color: Colors.white, size: 14),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    user?.name ?? 'Guest User',
+                    user?.name ?? 'Revola Member',
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    user?.email ?? 'Sign in to sync your data',
-                    style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                    '@${user?.displayUsername ?? 'username'}',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.primaryBlue),
                   ),
+                  const SizedBox(height: 2),
+                  Text(
+                    user?.email ?? '',
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  ),
+                  if (user?.phoneNumber?.isNotEmpty == true) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      user!.phoneNumber!,
+                      style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    ),
+                  ],
                   const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: roleColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: roleColor.withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      'ROLE: $roleLabel',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: roleColor),
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: roleColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: roleColor.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          'ROLE: $roleLabel',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: roleColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Edit Profile & Change Password Quick Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.edit_outlined, size: 16),
+                          label: const Text('Edit Profile', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                          onPressed: () => _showEditProfileModal(context, ref),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.primaryBlue,
+                            side: const BorderSide(color: AppTheme.primaryBlue),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.lock_outline, size: 16),
+                          label: const Text('Password', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                          onPressed: () => _showChangePasswordDialog(context, ref),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.textPrimary,
+                            side: const BorderSide(color: AppTheme.borderColor),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

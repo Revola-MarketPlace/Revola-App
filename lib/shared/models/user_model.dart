@@ -61,7 +61,9 @@ class SellerProfile {
 class UserModel {
   final String id;
   final String name;
+  final String? username;
   final String email;
+  final String? avatar;
   final String role; // 'BUYER', 'SELLER', 'ADMIN', 'STAFF'
   final List<String> roles;
   final bool isSellerApproved;
@@ -71,7 +73,9 @@ class UserModel {
   UserModel({
     required this.id,
     required this.name,
+    this.username,
     required this.email,
+    this.avatar,
     required this.role,
     this.roles = const [],
     this.isSellerApproved = false,
@@ -83,6 +87,8 @@ class UserModel {
   bool get isAdmin => role == 'ADMIN';
   bool get isStaff => role == 'STAFF' || role == 'ADMIN';
   bool get isBuyer => role == 'BUYER';
+
+  String get displayUsername => username?.isNotEmpty == true ? username! : email.split('@').first;
 
   factory UserModel.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
@@ -104,7 +110,9 @@ class UserModel {
     return UserModel(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? 'User',
+      username: json['username']?.toString(),
       email: json['email']?.toString() ?? '',
+      avatar: json['avatar']?.toString(),
       role: json['role']?.toString() ?? 'BUYER',
       roles: userRoles,
       isSellerApproved: json['isSellerApproved'] == true,
@@ -117,7 +125,9 @@ class UserModel {
     return {
       '_id': id,
       'name': name,
+      'username': username,
       'email': email,
+      'avatar': avatar,
       'role': role,
       'roles': roles,
       'isSellerApproved': isSellerApproved,

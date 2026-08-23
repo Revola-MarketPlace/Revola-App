@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/user_model.dart';
@@ -7,9 +8,12 @@ class AuthRepository {
 
   AuthRepository(this._apiClient);
 
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(String identifier, String password) async {
+    final cleanId = identifier.trim().toLowerCase();
     final res = await _apiClient.post(ApiEndpoints.login, data: {
-      'email': email.trim().toLowerCase(),
+      'identifier': cleanId,
+      'email': cleanId,
+      'username': cleanId,
       'password': password,
     });
 
@@ -69,14 +73,16 @@ class AuthRepository {
   }
 
   Future<Map<String, dynamic>> register({
-    required String name,
+    required String username,
     required String email,
     required String password,
+    String? name,
     String role = 'BUYER',
     String? phoneNumber,
   }) async {
     final res = await _apiClient.post(ApiEndpoints.register, data: {
-      'name': name.trim(),
+      'username': username.trim().toLowerCase(),
+      'name': (name?.trim().isNotEmpty == true ? name!.trim() : username.trim()),
       'email': email.trim().toLowerCase(),
       'password': password,
       'role': role,
@@ -99,6 +105,60 @@ class AuthRepository {
     }
     data['extractedToken'] = token;
     return data;
+  }
+
+  Future<UserModel> updateProfile({
+    String? name,
+    String? username,
+    String? phoneNumber,
+    String? avatar,
+  }) async {
+    final res = await _apiClient.put(ApiEndpoints.updateDetails, data: {
+      if (name != null) 'name': name.trim(),
+      if (username != null) 'username': username.trim().toLowerCase(),
+      if (phoneNumber != null) 'phoneNumber': phoneNumber.trim(),
+      if (avatar != null) 'avatar': avatar,
+    });
+    final userJson = res.data['user'] ?? res.data['data'] ?? res.data;
+    return UserModel.fromJson(userJson is Map<String, dynamic> ? userJson : {});
+  }
+
+  Future<String> uploadAvatar(String filePath) async {
+    try {
+      final filename = filePath.split(RegExp(r'[\\/]')).last;
+      final formData = FormData();
+      formData.files.add(
+        MapEntry('images', await MultipartFile.fromFile(filePath, filename: filename)),
+      );
+      final res = await _apiClient.post('${ApiEndpoints.products}/upload', data: formData);
+      final rawList = res.data['urls'] ?? res.data['images'] ?? res.data['data'] ?? [];
+      if (rawList is List && rawList.isNotEmpty) {
+        final avatarUrl = rawList.first.toString();
+        await updateProfile(avatar: avatarUrl);
+        return avatarUrl;
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  Future<void> updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _apiClient.put(ApiEndpoints.updatePassword, data: {
+      'currentPassword': currentPassword,
+      'newPassword': newPassword,
+      'password': newPassword,
+    });
+  }
+
+  Future<String> forgotPassword(String identifier) async {
+    final res = await _apiClient.post('/auth/forgotpassword', data: {
+      'identifier': identifier.trim().toLowerCase(),
+      'email': identifier.trim().toLowerCase(),
+      'username': identifier.trim().toLowerCase(),
+    });
+    return res.data['message']?.toString() ?? 'Password recovery instructions have been sent.';
   }
 
   Future<UserModel> completeOnboarding(Map<String, dynamic> payload) async {

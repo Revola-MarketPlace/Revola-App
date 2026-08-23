@@ -13,30 +13,30 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailCtrl = TextEditingController();
+  final _identifierCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscurePass = true;
   bool _isGoogleLoading = false;
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
+    _identifierCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
-    final email = _emailCtrl.text.trim();
-    final pass = _passCtrl.text.trim();
+    final identifier = _identifierCtrl.text.trim();
+    final pass = _passCtrl.text;
 
-    if (email.isEmpty || pass.isEmpty) {
+    if (identifier.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email and password.')),
+        const SnackBar(content: Text('Please enter your username/email and password.')),
       );
       return;
     }
 
-    final success = await ref.read(authControllerProvider.notifier).login(email, pass);
+    final success = await ref.read(authControllerProvider.notifier).login(identifier, pass);
 
     if (success && mounted) {
       final user = ref.read(authControllerProvider).user;
@@ -57,11 +57,96 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final err = ref.read(authControllerProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(err ?? 'Incorrect email or password.'),
+          content: Text(err ?? 'Incorrect username/email or password.'),
           backgroundColor: const Color(0xFFEF4444),
         ),
       );
     }
+  }
+
+  Future<void> _showForgotPasswordDialog() async {
+    final resetCtrl = TextEditingController(text: _identifierCtrl.text.trim());
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.lock_reset, color: AppTheme.primaryBlue),
+              SizedBox(width: 8),
+              Text('Reset Password', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Enter your registered email address or username and we will send you account recovery instructions.',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: resetCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Email or Username',
+                  hintText: 'e.g. petros@example.com',
+                  prefixIcon: const Icon(Icons.alternate_email, size: 20),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      final input = resetCtrl.text.trim();
+                      if (input.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter your email or username.')),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() => isSubmitting = true);
+                      final msg = await ref.read(authControllerProvider.notifier).forgotPassword(input);
+                      if (mounted) {
+                        Navigator.pop(ctx);
+                        showDialog(
+                          context: context,
+                          builder: (c) => AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            title: const Text('Check Your Inbox', style: TextStyle(fontWeight: FontWeight.w900)),
+                            content: Text(msg, style: const TextStyle(fontSize: 14)),
+                            actions: [
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
+                                onPressed: () => Navigator.pop(c),
+                                child: const Text('OK', style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    },
+              child: isSubmitting
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Send Recovery', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _handleGoogleSignIn() async {
@@ -150,7 +235,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Text(
-                      'OR SIGN IN WITH EMAIL',
+                      'OR SIGN IN WITH USERNAME / EMAIL',
                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.textSecondary.withValues(alpha: 0.8), letterSpacing: 0.5),
                     ),
                   ),
@@ -159,15 +244,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Email Field
-              const Text('EMAIL ADDRESS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textSecondary, letterSpacing: 0.5)),
+              // Username / Email Field
+              const Text('USERNAME OR EMAIL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textSecondary, letterSpacing: 0.5)),
               const SizedBox(height: 6),
               TextFormField(
-                controller: _emailCtrl,
-                keyboardType: TextInputType.emailAddress,
+                controller: _identifierCtrl,
                 decoration: InputDecoration(
-                  hintText: 'Enter your email address',
-                  prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.textSecondary, size: 20),
+                  hintText: 'Enter your username or email',
+                  prefixIcon: const Icon(Icons.person_outline, color: AppTheme.textSecondary, size: 20),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.borderColor)),
@@ -178,7 +262,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 14),
 
               // Password Field
-              const Text('PASSWORD', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textSecondary, letterSpacing: 0.5)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('PASSWORD', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textSecondary, letterSpacing: 0.5)),
+                  GestureDetector(
+                    onTap: _showForgotPasswordDialog,
+                    child: const Text('Forgot Password?', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.primaryBlue)),
+                  ),
+                ],
+              ),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _passCtrl,
@@ -222,7 +315,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Text("Don't have an account? ", style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
                   GestureDetector(
                     onTap: () => context.go('/register'),
-                    child: const Text('Sign Up with Google', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.w800, fontSize: 13)),
+                    child: const Text('Create Account', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.w800, fontSize: 13)),
                   ),
                 ],
               ),
