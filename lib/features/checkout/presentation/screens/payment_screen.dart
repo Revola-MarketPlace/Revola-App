@@ -5,7 +5,6 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/custom_button.dart';
-import '../../../../shared/widgets/custom_text_field.dart';
 
 class PaymentScreen extends ConsumerStatefulWidget {
   final String orderId;
@@ -18,7 +17,6 @@ class PaymentScreen extends ConsumerStatefulWidget {
 }
 
 class _PaymentScreenState extends ConsumerState<PaymentScreen> {
-  final _receiptCtrl = TextEditingController();
   bool _isLoading = true;
   String? _errorMessage;
   WebViewController? _webViewController;
@@ -29,17 +27,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     _initializePayment();
   }
 
-  @override
-  void dispose() {
-    _receiptCtrl.dispose();
-    super.dispose();
-  }
-
   Future<void> _initializePayment() async {
-    if (widget.method != 'CHAPA') {
-      setState(() => _isLoading = false);
-      return;
-    }
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
       final client = ref.read(apiClientProvider);
@@ -84,50 +76,26 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Future<void> _verifyChapaPayment() async {
     try {
       final client = ref.read(apiClientProvider);
-      await client.get('/payments/verify/ORD-${widget.orderId}');
+      await client.get('/payments/verify-online', queryParameters: {
+        'transactionId': 'ORD-' + widget.orderId,
+        'provider': 'chapa',
+      });
       if (mounted) {
-        context.go('/order-success/${widget.orderId}');
+        context.go('/order-success/' + widget.orderId);
       }
     } catch (_) {
       if (mounted) {
-        context.go('/order-success/${widget.orderId}');
-      }
-    }
-  }
-
-  Future<void> _submitManualReceipt() async {
-    if (_receiptCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter transaction reference')));
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      final client = ref.read(apiClientProvider);
-      await client.post('/payments/submit-receipt', data: {
-        'orderId': widget.orderId,
-        'paymentMethod': widget.method,
-        'transactionReference': _receiptCtrl.text.trim(),
-      });
-
-      if (mounted) {
-        setState(() => _isLoading = false);
-        context.go('/order-success/${widget.orderId}');
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: const Color(0xFFEF4444)));
+        context.go('/order-success/' + widget.orderId);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.method == 'CHAPA' && _webViewController != null) {
+    if (_webViewController != null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Chapa Secure Checkout'),
+          title: const Text('Chapa Test Checkout'),
           actions: [
             TextButton(
               onPressed: _verifyChapaPayment,
@@ -140,72 +108,38 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Complete Payment')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryBlue))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      appBar: AppBar(title: const Text('Chapa Payment')),
+      body: Center(
+        child: _isLoading
+            ? const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFBFDBFE)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Order Placed Successfully!', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppTheme.primaryBlueDark)),
-                        const SizedBox(height: 4),
-                        Text('Order ID: ${widget.orderId}', style: const TextStyle(fontSize: 12, color: AppTheme.primaryBlue)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  if (widget.method == 'BANK_TRANSFER') ...[
-                    const Text('Commercial Bank of Ethiopia (CBE) Instructions', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '1. Transfer order total to CBE Account: 1000234567890 (Revola Materials)\n2. Enter the transaction TT reference code below for verification.',
-                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.5),
-                    ),
-                    const SizedBox(height: 16),
-                    CustomTextField(
-                      label: 'CBE Reference / TT Number',
-                      hintText: 'e.g. FT2608123456',
-                      controller: _receiptCtrl,
-                    ),
-                    const SizedBox(height: 24),
-                    CustomButton(text: 'Submit Reference for Verification', isLoading: _isLoading, onPressed: _submitManualReceipt),
-                  ] else if (widget.method == 'TELEBIRR') ...[
-                    const Text('Telebirr Payment Instructions', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '1. Open Telebirr SuperApp and transfer to Merchant ID: 887766\n2. Enter the Telebirr transaction code below.',
-                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.5),
-                    ),
-                    const SizedBox(height: 16),
-                    CustomTextField(
-                      label: 'Telebirr Transaction Code',
-                      hintText: 'e.g. TX-TELEBIRR-987654',
-                      controller: _receiptCtrl,
-                    ),
-                    const SizedBox(height: 24),
-                    CustomButton(text: 'Submit Telebirr Reference', isLoading: _isLoading, onPressed: _submitManualReceipt),
-                  ] else ...[
-                    if (_errorMessage != null)
-                      Text(_errorMessage!, style: const TextStyle(color: Color(0xFFEF4444))),
-                    const SizedBox(height: 16),
-                    CustomButton(text: 'Proceed to Payment Gateway', onPressed: _initializePayment),
-                  ],
+                  CircularProgressIndicator(color: AppTheme.primaryBlue),
+                  SizedBox(height: 16),
+                  Text('Connecting to Chapa Sandbox Gateway...', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
                 ],
+              )
+            : Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 48),
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage ?? 'Payment initialization failed',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary),
+                    ),
+                    const SizedBox(height: 24),
+                    CustomButton(
+                      text: 'Retry Chapa Payment',
+                      onPressed: _initializePayment,
+                    ),
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 }

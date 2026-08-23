@@ -17,6 +17,7 @@ class CartState {
 
   int get totalItems => cart?.totalItemsCount ?? 0;
   double get subtotal => cart?.subtotal ?? 0.0;
+  List<CartItemModel> get items => cart?.items ?? [];
 
   CartState copyWith({CartModel? cart, bool? isLoading, String? error}) {
     return CartState(
@@ -71,6 +72,15 @@ class CartController extends StateNotifier<CartState> {
       state = state.copyWith(cart: cart);
     } catch (e) {
       state = state.copyWith(error: e.toString());
+    }
+  }
+
+  Future<void> clearCart() async {
+    try {
+      await _repo.clearCart();
+      state = CartState(cart: null);
+    } catch (_) {
+      state = CartState(cart: null);
     }
   }
 }
