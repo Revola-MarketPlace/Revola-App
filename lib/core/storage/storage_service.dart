@@ -5,12 +5,28 @@ class StorageService {
   static const String _tokenKey = 'revola_auth_token';
   static const String _activeRoleKey = 'revola_active_role';
   static const String _favoritesKey = 'revola_favorites';
+  static const String _themeModeKey = 'revola_theme_mode';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   late SharedPreferences _prefs;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+  }
+
+  // Appearance / Theme Mode persistence
+  Future<void> saveThemeMode(String mode) async {
+    try {
+      await _prefs.setString(_themeModeKey, mode);
+    } catch (_) {}
+  }
+
+  String getThemeMode() {
+    try {
+      return _prefs.getString(_themeModeKey) ?? 'system';
+    } catch (_) {
+      return 'system';
+    }
   }
 
   // Token management
