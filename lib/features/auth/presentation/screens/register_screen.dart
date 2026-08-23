@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -13,15 +13,31 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
+  String _selectedRole = 'SELLER';
   bool _isGoogleLoading = false;
 
   Future<void> _handleGoogleSignUp() async {
     setState(() => _isGoogleLoading = true);
     try {
-      final success = await ref.read(authControllerProvider.notifier).loginWithGoogle();
+      final success = await ref.read(authControllerProvider.notifier).loginWithGoogle(role: _selectedRole);
 
       if (success && mounted) {
-        context.go('/role-selection');
+        final user = ref.read(authControllerProvider).user;
+        final needsRole = ref.read(authControllerProvider).needsRoleSelection;
+
+        if (_selectedRole == 'SELLER') {
+          if (needsRole) {
+            context.go('/role-selection');
+          } else {
+            context.go('/seller-dashboard');
+          }
+        } else {
+          if (needsRole) {
+            context.go('/role-selection');
+          } else {
+            context.go('/home');
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -41,6 +57,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final isBusy = _isGoogleLoading || authState.isLoading;
+    final isSeller = _selectedRole == 'SELLER';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -52,34 +69,138 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const SizedBox(height: 8),
+              const Center(child: BrandLogo(fontSize: 32)),
               const SizedBox(height: 16),
-              const Center(child: BrandLogo(fontSize: 34)),
-              const SizedBox(height: 24),
               const Text(
                 'Join Revola Marketplace',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.w900,
                   color: AppTheme.textPrimary,
                   letterSpacing: -0.5,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
               const Text(
-                'Sign up with your Google Account to buy and sell salvage & construction materials in Adama City.',
+                'Select your account type to sign up with your verified Google account.',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   color: AppTheme.textSecondary,
-                  height: 1.5,
+                  height: 1.4,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
+
+              // Role Toggle Cards
+              const Text(
+                'I WANT TO REGISTER AS:',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.textSecondary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              Row(
+                children: [
+                  // Seller Option
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _selectedRole = 'SELLER'),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isSeller ? const Color(0xFFFFF7ED) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isSeller ? AppTheme.accentOrange : const Color(0xFFE2E8F0),
+                            width: isSeller ? 2 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.storefront,
+                              color: isSeller ? AppTheme.accentOrange : AppTheme.textSecondary,
+                              size: 28,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Seller / Merchant',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                color: isSeller ? AppTheme.accentOrange : AppTheme.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'List & sell materials',
+                              style: TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Buyer Option
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _selectedRole = 'BUYER'),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: !isSeller ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: !isSeller ? AppTheme.primaryBlue : const Color(0xFFE2E8F0),
+                            width: !isSeller ? 2 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.shopping_bag_outlined,
+                              color: !isSeller ? AppTheme.primaryBlue : AppTheme.textSecondary,
+                              size: 28,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Buyer / Builder',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                color: !isSeller ? AppTheme.primaryBlue : AppTheme.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Order & track deliveries',
+                              style: TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
 
               // Sign Up with Google Button
               ElevatedButton.icon(
@@ -92,11 +213,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       )
                     : const Icon(Icons.g_mobiledata, color: Colors.white, size: 32),
                 label: Text(
-                  isBusy ? 'Connecting to Google...' : 'Sign Up with Google Account',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  isBusy
+                      ? 'Connecting to Google...'
+                      : (isSeller ? 'Sign Up as Seller with Google' : 'Sign Up as Buyer with Google'),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryBlue,
+                  backgroundColor: isSeller ? AppTheme.accentOrange : AppTheme.primaryBlue,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -121,7 +244,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
               ],
 
-              const SizedBox(height: 36),
+              const SizedBox(height: 32),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

@@ -108,6 +108,7 @@ class AuthController extends StateNotifier<AuthState> {
     String? accessToken,
     String? email,
     String? name,
+    String? role,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -159,18 +160,19 @@ class AuthController extends StateNotifier<AuthState> {
         name: gName,
         googleId: gId,
         avatar: gAvatar,
+        role: role,
       );
 
       final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
       final rawUser = res['user'] ?? res['data']?['user'];
       final user = rawUser is Map<String, dynamic>
           ? UserModel.fromJson(rawUser)
-          : UserModel(id: '1', name: gName, email: gEmail, role: 'BUYER');
+          : (rawUser is Map ? UserModel.fromJson(Map<String, dynamic>.from(rawUser)) : UserModel(id: '1', name: gName, email: gEmail, role: role ?? 'BUYER'));
 
       final isNew = res['isNewUser'] == true;
       final bool hasSellerProfile = user.sellerProfile != null || (rawUser is Map && rawUser['sellerProfile'] != null);
       final bool hasPhoneNumber = (rawUser is Map && rawUser['phoneNumber'] != null && rawUser['phoneNumber'].toString().trim().isNotEmpty);
-      final needsRole = isNew || (!hasSellerProfile && !hasPhoneNumber && user.role == 'BUYER');
+      final needsRole = (role != 'SELLER' && user.role != 'SELLER') && (isNew || (!hasSellerProfile && !hasPhoneNumber));
 
       if (token.isNotEmpty) await _storage.saveToken(token);
       await _storage.saveActiveRole(user.role);
