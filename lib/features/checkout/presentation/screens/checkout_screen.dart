@@ -99,9 +99,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       if (mounted) {
         if (paymentUrl != null && paymentUrl.toString().isNotEmpty) {
-          context.push('/payment/' + orderId + '/CHAPA');
+          final transactionId = result['transactionId']?.toString() ?? '';
+          context.push(
+            '/payment/$orderId?method=CHAPA',
+            extra: {
+              'paymentUrl': paymentUrl.toString(),
+              'transactionId': transactionId,
+            },
+          );
         } else {
-          context.go('/order-success/' + orderId);
+          context.go('/order-success/$orderId');
         }
       }
     } catch (e) {

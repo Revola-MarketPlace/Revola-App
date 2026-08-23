@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -67,10 +67,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isGoogleLoading = true);
     try {
-      final success = await ref.read(authControllerProvider.notifier).loginWithGoogle(
-        email: 'user.google@revola.et',
-        name: 'Revola Google User',
-      );
+      final success = await ref.read(authControllerProvider.notifier).loginWithGoogle();
       if (success && mounted) {
         final user = ref.read(authControllerProvider).user;
         final needsRole = ref.read(authControllerProvider).needsRoleSelection;

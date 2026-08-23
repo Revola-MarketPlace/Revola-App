@@ -133,7 +133,15 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final orderId = state.pathParameters['orderId']!;
         final method = state.uri.queryParameters['method'] ?? 'CHAPA';
-        return PaymentScreen(orderId: orderId, method: method);
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        final paymentUrl = extra['paymentUrl']?.toString();
+        final transactionId = extra['transactionId']?.toString();
+        return PaymentScreen(
+          orderId: orderId,
+          method: method,
+          paymentUrl: paymentUrl,
+          transactionId: transactionId,
+        );
       },
     ),
     GoRoute(

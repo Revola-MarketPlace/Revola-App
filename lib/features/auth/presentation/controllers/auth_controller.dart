@@ -1,4 +1,5 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/storage/storage_service.dart';
 import '../../../../shared/models/user_model.dart';
@@ -8,6 +9,12 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final client = ref.watch(apiClientProvider);
   return AuthRepository(client);
 });
+
+// Google Sign-In instance configured with server client ID for ID token
+final _googleSignIn = GoogleSignIn(
+  serverClientId: '764795198689-41h522pnno7r3ifmb6im3iu12418m31f.apps.googleusercontent.com',
+  scopes: ['email', 'profile'],
+);
 
 class AuthState {
   final UserModel? user;
@@ -79,23 +86,15 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       final res = await _repo.login(email, password);
       final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
-      
       final rawUser = res['user'] ?? res['data']?['user'];
       final user = rawUser is Map<String, dynamic>
           ? UserModel.fromJson(rawUser)
           : UserModel(id: '1', name: 'User', email: email, role: 'BUYER');
 
-      if (token.isNotEmpty) {
-        await _storage.saveToken(token);
-      }
+      if (token.isNotEmpty) await _storage.saveToken(token);
       await _storage.saveActiveRole(user.role);
 
-      state = state.copyWith(
-        token: token,
-        user: user,
-        activeRole: user.role,
-        isLoading: false,
-      );
+      state = state.copyWith(token: token, user: user, activeRole: user.role, isLoading: false);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -103,6 +102,8 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  /// Real Google Sign-In: triggers native Google account picker,
+  /// gets ID token, sends it to backend POST /auth/google
   Future<bool> loginWithGoogle({
     String? credential,
     String? accessToken,
@@ -111,11 +112,30 @@ class AuthController extends StateNotifier<AuthState> {
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
+      // Trigger native Google Sign-In flow
+      await _googleSignIn.signOut(); // force account picker
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        // User cancelled
+        state = state.copyWith(isLoading: false, error: null);
+        return false;
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      final gAccessToken = googleAuth.accessToken;
+
+      if (idToken == null && gAccessToken == null) {
+        throw Exception('Could not get Google credentials. Make sure SHA-1 fingerprint is registered in Google Cloud Console.');
+      }
+
       final res = await _repo.googleAuth(
-        credential: credential,
-        accessToken: accessToken,
-        email: email,
-        name: name,
+        credential: idToken,       // Google ID Token — what backend verifies
+        accessToken: gAccessToken, // fallback
+        email: googleUser.email,
+        name: googleUser.displayName,
+        googleId: googleUser.id,
+        avatar: googleUser.photoUrl,
       );
 
       final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
@@ -125,11 +145,9 @@ class AuthController extends StateNotifier<AuthState> {
       final rawUser = res['user'] ?? res['data']?['user'];
       final user = rawUser is Map<String, dynamic>
           ? UserModel.fromJson(rawUser)
-          : UserModel(id: '1', name: name ?? 'Google User', email: email ?? '', role: 'BUYER');
+          : UserModel(id: '1', name: googleUser.displayName ?? 'Google User', email: googleUser.email, role: 'BUYER');
 
-      if (token.isNotEmpty) {
-        await _storage.saveToken(token);
-      }
+      if (token.isNotEmpty) await _storage.saveToken(token);
       await _storage.saveActiveRole(user.role);
 
       state = state.copyWith(
@@ -141,7 +159,8 @@ class AuthController extends StateNotifier<AuthState> {
       );
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      final msg = e.toString().replaceAll('Exception: ', '');
+      state = state.copyWith(isLoading: false, error: msg);
       return false;
     }
   }
@@ -151,12 +170,7 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       final user = await _repo.completeOnboarding(payload);
       await _storage.saveActiveRole(user.role);
-      state = state.copyWith(
-        user: user,
-        activeRole: user.role,
-        needsRoleSelection: false,
-        isLoading: false,
-      );
+      state = state.copyWith(user: user, activeRole: user.role, needsRoleSelection: false, isLoading: false);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -164,9 +178,7 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> switchActiveRole(String role) async {
-    await switchRole(role);
-  }
+  Future<void> switchActiveRole(String role) async => switchRole(role);
 
   Future<void> switchRole(String role) async {
     state = state.copyWith(isLoading: true);
@@ -180,6 +192,7 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    await _googleSignIn.signOut().catchError((_) {});
     await _storage.clearToken();
     state = AuthState();
   }
