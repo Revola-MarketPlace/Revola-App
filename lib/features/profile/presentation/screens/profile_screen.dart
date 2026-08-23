@@ -306,6 +306,67 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
+  void _showThemeSelectionDialog(BuildContext context, WidgetRef ref) {
+    final currentMode = ref.read(themeControllerProvider);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Appearance Mode', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+              const SizedBox(height: 6),
+              const Text(
+                'Choose how Revola looks on your device.',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.wb_sunny_outlined, color: AppTheme.accentOrange),
+                title: const Text('Light Mode', style: TextStyle(fontWeight: FontWeight.w700)),
+                trailing: currentMode == ThemeMode.light
+                    ? const Icon(Icons.check_circle, color: AppTheme.primaryBlue)
+                    : null,
+                onTap: () {
+                  ref.read(themeControllerProvider.notifier).setThemeMode(ThemeMode.light);
+                  Navigator.pop(ctx);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.nightlight_outlined, color: Color(0xFF6366F1)),
+                title: const Text('Dark Mode', style: TextStyle(fontWeight: FontWeight.w700)),
+                trailing: currentMode == ThemeMode.dark
+                    ? const Icon(Icons.check_circle, color: AppTheme.primaryBlue)
+                    : null,
+                onTap: () {
+                  ref.read(themeControllerProvider.notifier).setThemeMode(ThemeMode.dark);
+                  Navigator.pop(ctx);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings_suggest_outlined, color: AppTheme.emeraldGreen),
+                title: const Text('System Default', style: TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: const Text('Matches your device theme setting', style: TextStyle(fontSize: 11)),
+                trailing: currentMode == ThemeMode.system
+                    ? const Icon(Icons.check_circle, color: AppTheme.primaryBlue)
+                    : null,
+                onTap: () {
+                  ref.read(themeControllerProvider.notifier).setThemeMode(ThemeMode.system);
+                  Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showAboutRevolaDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -419,6 +480,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
     final user = authState.user;
+    final themeMode = ref.watch(themeControllerProvider);
     final isSeller = user?.isSeller == true || user?.role == 'SELLER';
     final isAdmin = user?.isAdmin == true;
     final isStaff = user?.isStaff == true;
@@ -438,13 +500,31 @@ class ProfileScreen extends ConsumerWidget {
 
     final hasAvatar = user?.avatar != null && user!.avatar!.trim().isNotEmpty;
 
+    String themeLabel = 'System';
+    IconData themeIcon = Icons.settings_suggest_outlined;
+    if (themeMode == ThemeMode.light) {
+      themeLabel = 'Light';
+      themeIcon = Icons.wb_sunny_outlined;
+    } else if (themeMode == ThemeMode.dark) {
+      themeLabel = 'Dark';
+      themeIcon = Icons.nightlight_outlined;
+    }
+
+    final cardColor = Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderCol = isDark ? AppTheme.borderColorDark : AppTheme.borderColor;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text('My Profile'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.textPrimary,
         elevation: 1,
+        actions: [
+          IconButton(
+            icon: Icon(themeIcon),
+            tooltip: 'Appearance Mode: $themeLabel',
+            onPressed: () => _showThemeSelectionDialog(context, ref),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -454,9 +534,9 @@ class ProfileScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardColor,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.borderColor),
+                border: Border.all(color: borderCol),
               ),
               child: Column(
                 children: [
@@ -558,8 +638,8 @@ class ProfileScreen extends ConsumerWidget {
                           label: const Text('Password', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
                           onPressed: () => _showChangePasswordDialog(context, ref),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: AppTheme.textPrimary,
-                            side: const BorderSide(color: AppTheme.borderColor),
+                            foregroundColor: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
+                            side: BorderSide(color: borderCol),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
@@ -573,6 +653,7 @@ class ProfileScreen extends ConsumerWidget {
 
             // Navigation Tiles
             _buildTile(
+              context,
               Icons.storefront_outlined,
               isSeller ? 'Seller Portal (Active)' : 'Seller Portal (Requires Seller Account)',
               () => _handleSellerPortalTap(context, isSeller),
@@ -581,6 +662,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
             if (isAdmin)
               _buildTile(
+                context,
                 Icons.admin_panel_settings_outlined,
                 'Admin Management Console',
                 () => context.push('/admin-dashboard'),
@@ -589,6 +671,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
             if (isStaff)
               _buildTile(
+                context,
                 Icons.badge_outlined,
                 'Staff Operations Hub',
                 () => context.push('/staff-dashboard'),
@@ -596,17 +679,28 @@ class ProfileScreen extends ConsumerWidget {
                 badgeColor: const Color(0xFF0284C7),
               ),
             _buildTile(
+              context,
               Icons.receipt_long_outlined,
               'My Order History',
               () => context.push('/orders'),
               subtitle: 'Track live orders & deliveries',
             ),
             _buildTile(
+              context,
+              Icons.palette_outlined,
+              'Appearance Mode ($themeLabel)',
+              () => _showThemeSelectionDialog(context, ref),
+              subtitle: 'Switch Light, Dark, or System mode',
+              badgeColor: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue,
+            ),
+            _buildTile(
+              context,
               Icons.notifications_outlined,
               'Notifications',
               () => context.push('/notifications'),
             ),
             _buildTile(
+              context,
               Icons.info_outline,
               'About Revola',
               () => _showAboutRevolaDialog(context),
@@ -616,9 +710,9 @@ class ProfileScreen extends ConsumerWidget {
             const SizedBox(height: 20),
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderColor),
+                border: Border.all(color: borderCol),
               ),
               child: ListTile(
                 leading: const Icon(Icons.logout, color: Color(0xFFEF4444)),
@@ -654,18 +748,23 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildTile(
+    BuildContext context,
     IconData icon,
     String title,
     VoidCallback onTap, {
     String? subtitle,
     Color? badgeColor,
   }) {
+    final cardColor = Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderCol = isDark ? AppTheme.borderColorDark : AppTheme.borderColor;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderColor),
+        border: Border.all(color: borderCol),
       ),
       child: ListTile(
         leading: Icon(icon, color: badgeColor ?? AppTheme.primaryBlue, size: 22),
