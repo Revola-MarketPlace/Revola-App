@@ -13,7 +13,7 @@ class ApiEndpoints {
   static const String products = '/products';
   static const String categories = '/categories';
   static const String materialTypes = '/material-types';
-  static const String mySellerProducts = '/products/seller/my-products';
+  static const String mySellerProducts = '/products/my/listings';
 
   // Cart
   static const String cart = '/cart';
@@ -22,22 +22,27 @@ class ApiEndpoints {
   // Orders & Deliveries
   static const String estimateDeliveryFee = '/orders/estimate-delivery-fee';
   static const String checkout = '/orders/checkout';
-  static const String myBuyerOrders = '/orders/my-orders';
-  static const String mySellerOrders = '/orders/seller-orders';
+  static const String myBuyerOrders = '/orders';
+  static const String mySellerOrders = '/orders';
   static const String trackingByNumber = '/orders/tracking';
   static const String deliveryByOrder = '/deliveries/order';
+  static const String deliveries = '/deliveries';
+  static const String deliveryStatus = '/deliveries/status';
 
   // Payments
   static const String initPayment = '/payments/initialize';
   static const String verifyPayment = '/payments/verify-online';
   static const String submitReceipt = '/payments/submit-receipt';
+  static const String pendingPayments = '/payments/pending';
+  static const String verifyManualPayment = '/payments/verify-manual';
 
   // Map & Depots
   static const String mapPlaces = '/map/places';
   static const String nearestPlaces = '/map/nearest';
 
   // Payouts & Disputes
-  static const String myPayouts = '/payouts/my-payouts';
+  static const String myPayouts = '/payouts/my/listings';
+  static const String sellerProducts = '/products/my/listings';
   static const String disputes = '/disputes';
   static const String myDisputes = '/disputes/my-disputes';
 
