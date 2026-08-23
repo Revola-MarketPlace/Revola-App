@@ -20,8 +20,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
-    _emailCtrl.dispose;
-    _passCtrl.dispose;
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
     super.dispose();
   }
 
