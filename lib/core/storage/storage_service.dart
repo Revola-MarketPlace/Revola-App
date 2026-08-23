@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class StorageService {
   static const String _tokenKey = 'revola_auth_token';
   static const String _activeRoleKey = 'revola_active_role';
+  static const String _userCacheKey = 'revola_cached_user';
   static const String _favoritesKey = 'revola_favorites';
   static const String _themeModeKey = 'revola_theme_mode';
 
@@ -44,25 +45,80 @@ class StorageService {
 
   // Active role persistence
   Future<void> saveActiveRole(String role) async {
-    await _prefs.setString(_activeRoleKey, role);
+    try {
+      await _prefs.setString(_activeRoleKey, role);
+    } catch (_) {}
   }
 
   String? getActiveRole() {
-    return _prefs.getString(_activeRoleKey);
+    try {
+      return _prefs.getString(_activeRoleKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> clearActiveRole() async {
+    try {
+      await _prefs.remove(_activeRoleKey);
+    } catch (_) {}
+  }
+
+  // User Profile Cache (for immediate offline hydration)
+  Future<void> saveUserCache(String userJson) async {
+    try {
+      await _prefs.setString(_userCacheKey, userJson);
+    } catch (_) {}
+  }
+
+  String? getUserCache() {
+    try {
+      return _prefs.getString(_userCacheKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> clearUserCache() async {
+    try {
+      await _prefs.remove(_userCacheKey);
+    } catch (_) {}
   }
 
   // Favorites persistence
   List<String> getFavoriteIds() {
-    return _prefs.getStringList(_favoritesKey) ?? [];
+    try {
+      return _prefs.getStringList(_favoritesKey) ?? [];
+    } catch (_) {
+      return [];
+    }
   }
 
   Future<void> toggleFavorite(String productId) async {
-    final list = getFavoriteIds().toList();
-    if (list.contains(productId)) {
-      list.remove(productId);
-    } else {
-      list.add(productId);
-    }
-    await _prefs.setStringList(_favoritesKey, list);
+    try {
+      final list = getFavoriteIds().toList();
+      if (list.contains(productId)) {
+        list.remove(productId);
+      } else {
+        list.add(productId);
+      }
+      await _prefs.setStringList(_favoritesKey, list);
+    } catch (_) {}
+  }
+
+  // Session Cleanup: clears user auth, role, and cache while keeping theme settings intact
+  Future<void> clearSession() async {
+    await clearToken();
+    await clearActiveRole();
+    await clearUserCache();
+  }
+
+  // Full storage reset
+  Future<void> clearAll() async {
+    await _secureStorage.deleteAll();
+    try {
+      await _prefs.clear();
+    } catch (_) {}
   }
 }
+
