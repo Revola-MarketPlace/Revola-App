@@ -40,8 +40,9 @@ class SellerRepository {
         );
       }
       final res = await _apiClient.post('${ApiEndpoints.products}/upload', data: formData);
-      if (res.data['images'] != null && res.data['images'] is List) {
-        return List<String>.from(res.data['images']);
+      final rawList = res.data['urls'] ?? res.data['images'] ?? res.data['data'] ?? [];
+      if (rawList is List) {
+        return List<String>.from(rawList.map((e) => e.toString()));
       }
     } catch (_) {}
     return [];

@@ -1,8 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../models/product_model.dart';
+import 'app_image_view.dart';
 
 class MaterialCard extends StatelessWidget {
   final ProductModel product;
@@ -36,25 +36,11 @@ class MaterialCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  CachedNetworkImage(
+                  AppImageView(
                     imageUrl: product.primaryImage,
+                    materialName: product.name,
+                    categoryName: product.category?.name,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(
-                      color: const Color(0xFFF1F5F9),
-                      child: const Center(
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
-                        ),
-                      ),
-                    ),
-                    errorWidget: (_, __, ___) => Container(
-                      color: const Color(0xFFF1F5F9),
-                      child: const Center(
-                        child: Icon(Icons.inventory_2_outlined, color: AppTheme.primaryBlue, size: 36),
-                      ),
-                    ),
                   ),
                   // Condition Tag
                   Positioned(

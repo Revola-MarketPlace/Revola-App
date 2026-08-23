@@ -1,9 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../shared/widgets/app_image_view.dart';
 import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/empty_state_view.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
@@ -62,19 +62,11 @@ class CartScreen extends ConsumerWidget {
                                     border: Border.all(color: AppTheme.borderColor),
                                   ),
                                   clipBehavior: Clip.antiAlias,
-                                  child: CachedNetworkImage(
+                                  child: AppImageView(
                                     imageUrl: imageUrl,
+                                    materialName: productName,
+                                    categoryName: product.category?.name,
                                     fit: BoxFit.cover,
-                                    placeholder: (_, __) => const Center(
-                                      child: SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
-                                      ),
-                                    ),
-                                    errorWidget: (_, __, ___) => const Center(
-                                      child: Icon(Icons.inventory_2_outlined, color: AppTheme.primaryBlue, size: 28),
-                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
