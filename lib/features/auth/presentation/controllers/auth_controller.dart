@@ -95,15 +95,15 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String identifier, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final res = await _repo.login(email, password);
+      final res = await _repo.login(identifier, password);
       final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
       final rawUser = res['user'] ?? res['data']?['user'];
       final user = rawUser is Map<String, dynamic>
           ? UserModel.fromJson(rawUser)
-          : UserModel(id: '1', name: 'User', email: email, role: 'BUYER');
+          : UserModel(id: '1', name: 'User', email: identifier, role: 'BUYER');
 
       if (token.isNotEmpty) await _storage.saveToken(token);
       await _storage.saveActiveRole(user.role);
@@ -111,8 +111,124 @@ class AuthController extends StateNotifier<AuthState> {
       state = state.copyWith(token: token, user: user, activeRole: user.role, isLoading: false);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      final msg = e.toString().replaceAll('Exception: ', '');
+      state = state.copyWith(isLoading: false, error: msg);
       return false;
+    }
+  }
+
+  Future<bool> register({
+    required String username,
+    required String email,
+    required String password,
+    String? name,
+    String role = 'BUYER',
+    String? phoneNumber,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final res = await _repo.register(
+        username: username,
+        email: email,
+        password: password,
+        name: name,
+        role: role,
+        phoneNumber: phoneNumber,
+      );
+      final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
+      final rawUser = res['user'] ?? res['data']?['user'];
+      final user = rawUser is Map<String, dynamic>
+          ? UserModel.fromJson(rawUser)
+          : UserModel(id: '1', name: username, username: username, email: email, role: role);
+
+      if (token.isNotEmpty) await _storage.saveToken(token);
+      await _storage.saveActiveRole(user.role);
+
+      state = state.copyWith(token: token, user: user, activeRole: user.role, isLoading: false);
+      return true;
+    } catch (e) {
+      final msg = e.toString().replaceAll('Exception: ', '');
+      state = state.copyWith(isLoading: false, error: msg);
+      return false;
+    }
+  }
+
+  Future<bool> updateProfile({
+    String? name,
+    String? username,
+    String? phoneNumber,
+    String? avatar,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final updatedUser = await _repo.updateProfile(
+        name: name,
+        username: username,
+        phoneNumber: phoneNumber,
+        avatar: avatar,
+      );
+      state = state.copyWith(user: updatedUser, isLoading: false);
+      return true;
+    } catch (e) {
+      final msg = e.toString().replaceAll('Exception: ', '');
+      state = state.copyWith(isLoading: false, error: msg);
+      return false;
+    }
+  }
+
+  Future<bool> uploadAvatar(String filePath) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final avatarUrl = await _repo.uploadAvatar(filePath);
+      if (avatarUrl.isNotEmpty && state.user != null) {
+        final updated = UserModel(
+          id: state.user!.id,
+          name: state.user!.name,
+          username: state.user!.username,
+          email: state.user!.email,
+          avatar: avatarUrl,
+          role: state.user!.role,
+          roles: state.user!.roles,
+          isSellerApproved: state.user!.isSellerApproved,
+          phoneNumber: state.user!.phoneNumber,
+          sellerProfile: state.user!.sellerProfile,
+        );
+        state = state.copyWith(user: updated, isLoading: false);
+        return true;
+      }
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      final msg = e.toString().replaceAll('Exception: ', '');
+      state = state.copyWith(isLoading: false, error: msg);
+      return false;
+    }
+  }
+
+  Future<bool> updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _repo.updatePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      final msg = e.toString().replaceAll('Exception: ', '');
+      state = state.copyWith(isLoading: false, error: msg);
+      return false;
+    }
+  }
+
+  Future<String> forgotPassword(String identifier) async {
+    try {
+      return await _repo.forgotPassword(identifier);
+    } catch (e) {
+      return e.toString().replaceAll('Exception: ', '');
     }
   }
 
