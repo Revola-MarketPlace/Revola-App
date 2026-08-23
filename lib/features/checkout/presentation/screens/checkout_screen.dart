@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
-import '../../../../core/utils/geofence_helper.dart';
-import '../../../../shared/models/order_model.dart';
 import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../cart/presentation/controllers/cart_controller.dart';
-import '../../../orders/presentation/controllers/orders_controller.dart';
+import '../../../orders/data/order_repository.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -19,88 +16,102 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 }
 
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
-  final _addressCtrl = TextEditingController(text: 'Bole Subcity, Kebele 02, Adama');
+  final _addressCtrl = TextEditingController(text: 'Kebele 04, Near Stadium, Adama');
   final _phoneCtrl = TextEditingController(text: '+251911223344');
-  final _notesCtrl = TextEditingController();
+  String _subCity = 'Bole';
+  final double _lat = 8.5400;
+  final double _lng = 39.2700;
 
-  double _lat = AppConstants.adamaCenterLat;
-  double _lng = AppConstants.adamaCenterLng;
-  String _paymentMethod = 'CHAPA'; // 'CHAPA', 'TELEBIRR', 'BANK_TRANSFER'
-
-  double _deliveryFee = 250.0;
+  double _deliveryFee = 150.0;
   bool _isLoadingFee = false;
   bool _isSubmitting = false;
+
+  final List<String> _subCities = [
+    'Bole',
+    'Aba Geda',
+    'Goro',
+    'Boku',
+    'Kebele 02',
+    'Kebele 03',
+    'Kebele 04',
+    'Industry Zone',
+    'Wonji Road',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _calculateFee();
+    _estimateFee();
   }
 
   @override
   void dispose() {
     _addressCtrl.dispose();
     _phoneCtrl.dispose();
-    _notesCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _calculateFee() async {
+  Future<void> _estimateFee() async {
     setState(() => _isLoadingFee = true);
     try {
-      final cart = ref.read(cartControllerProvider).cart;
-      if (cart != null && cart.items.isNotEmpty) {
-        final res = await ref.read(orderRepositoryProvider).estimateDeliveryFee(
-          latitude: _lat,
-          longitude: _lng,
-          productIds: cart.items.map((e) => e.product.id).toList(),
-        );
-        setState(() {
-          _deliveryFee = (res['deliveryFee'] as num?)?.toDouble() ?? 250.0;
-          _isLoadingFee = false;
-        });
-      }
+      final cart = ref.read(cartControllerProvider);
+      final totalQty = cart.items.fold(0, (sum, item) => sum + item.quantity);
+      final fee = await ref.read(orderRepositoryProvider).estimateDeliveryFee(
+        latitude: _lat,
+        longitude: _lng,
+        totalQuantity: totalQty,
+      );
+      if (mounted) setState(() => _deliveryFee = fee);
     } catch (_) {
-      setState(() {
-        _deliveryFee = 250.0;
-        _isLoadingFee = false;
-      });
+      if (mounted) setState(() => _deliveryFee = 150.0);
+    } finally {
+      if (mounted) setState(() => _isLoadingFee = false);
     }
   }
 
   Future<void> _placeOrder() async {
-    if (!GeofenceHelper.isInsideAdamaServiceArea(_lat, _lng)) {
+    if (_addressCtrl.text.trim().isEmpty || _phoneCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Delivery address is outside Adama service area.')),
+        const SnackBar(content: Text('Please fill in your delivery address and contact phone number.')),
       );
       return;
     }
 
     setState(() => _isSubmitting = true);
     try {
-      final res = await ref.read(orderRepositoryProvider).checkout(
-        paymentMethod: _paymentMethod,
-        street: _addressCtrl.text.trim(),
-        latitude: _lat,
-        longitude: _lng,
-        contactPhone: _phoneCtrl.text.trim(),
-        deliveryNotes: _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
+      final result = await ref.read(orderRepositoryProvider).checkout(
+        deliveryAddress: {
+          'streetAddress': _addressCtrl.text.trim(),
+          'subCity': _subCity,
+          'city': 'Adama',
+          'phoneNumber': _phoneCtrl.text.trim(),
+          'latitude': _lat,
+          'longitude': _lng,
+        },
+        paymentMethod: 'CHAPA', // Strictly Chapa Test Mode
       );
 
-      ref.read(cartControllerProvider.notifier).fetchCart();
+      final order = result['order'];
+      final orderId = order?['_id'] ?? order?['id'] ?? '';
+      final paymentUrl = result['paymentUrl'];
+
+      ref.read(cartControllerProvider.notifier).clearCart();
 
       if (mounted) {
-        setState(() => _isSubmitting = false);
-        final order = res['order'] as OrderModel;
-        context.go('/payment/${order.id}?method=$_paymentMethod');
+        if (paymentUrl != null && paymentUrl.toString().isNotEmpty) {
+          context.push('/payment/' + orderId + '/CHAPA');
+        } else {
+          context.go('/order-success/' + orderId);
+        }
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString()), backgroundColor: const Color(0xFFEF4444)),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -123,9 +134,22 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             const Text('Delivery Location (Adama City)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
             const SizedBox(height: 10),
             CustomTextField(
-              label: 'Street Address & Kebele',
+              label: 'Street Address & Neighborhood',
               hintText: 'e.g. Near Stadium, Kebele 04, Adama',
               controller: _addressCtrl,
+            ),
+            const SizedBox(height: 12),
+            const Text('Subcity / Zone', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.textSecondary)),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              value: _subCity,
+              items: _subCities.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13)))).toList(),
+              onChanged: (v) => setState(() => _subCity = v ?? 'Bole'),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.borderColor)),
+              ),
             ),
             const SizedBox(height: 12),
             CustomTextField(
@@ -138,13 +162,42 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             const Divider(color: AppTheme.borderColor),
             const SizedBox(height: 12),
 
-            // 2. Payment Method Selector
-            const Text('Select Payment Method', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
+            // 2. Payment Method Selector — Strictly Chapa Test Mode
+            const Text('Payment Method', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
             const SizedBox(height: 10),
 
-            _buildPaymentRadio('CHAPA', 'Chapa Gateway (Cards, Mobile Money)', Icons.credit_card_outlined),
-            _buildPaymentRadio('TELEBIRR', 'Telebirr SuperApp', Icons.phone_android_outlined),
-            _buildPaymentRadio('BANK_TRANSFER', 'CBE / Awash Bank Transfer', Icons.account_balance_outlined),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppTheme.primaryBlue, width: 2),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.credit_card, color: AppTheme.primaryBlue, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Chapa Payment Gateway (Test Mode)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.textPrimary)),
+                        SizedBox(height: 2),
+                        Text('Instant sandbox checkout for Telebirr, CBE, Cards', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.check_circle, color: AppTheme.primaryBlue, size: 20),
+                ],
+              ),
+            ),
 
             const SizedBox(height: 20),
             const Divider(color: AppTheme.borderColor),
@@ -196,52 +249,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             const SizedBox(height: 24),
 
             CustomButton(
-              text: 'Place Order & Pay',
+              text: 'Pay with Chapa (Test Mode)',
               isLoading: _isSubmitting,
               onPressed: _placeOrder,
             ),
             const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPaymentRadio(String value, String title, IconData icon) {
-    final selected = _paymentMethod == value;
-    return GestureDetector(
-      onTap: () => setState(() => _paymentMethod = value),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: selected ? AppTheme.primaryBlue.withOpacity(0.06) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? AppTheme.primaryBlue : AppTheme.borderColor,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: selected ? AppTheme.primaryBlue : AppTheme.textSecondary, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  fontSize: 13,
-                  color: selected ? AppTheme.primaryBlue : AppTheme.textPrimary,
-                ),
-              ),
-            ),
-            Radio<String>(
-              value: value,
-              groupValue: _paymentMethod,
-              activeColor: AppTheme.primaryBlue,
-              onChanged: (val) => setState(() => _paymentMethod = val!),
-            ),
           ],
         ),
       ),

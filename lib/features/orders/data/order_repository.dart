@@ -1,53 +1,58 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/core_providers.dart';
 import '../../../shared/models/dispute_model.dart';
 import '../../../shared/models/order_model.dart';
+
+final orderRepositoryProvider = Provider<OrderRepository>((ref) {
+  final client = ref.watch(apiClientProvider);
+  return OrderRepository(client);
+});
 
 class OrderRepository {
   final ApiClient _apiClient;
 
   OrderRepository(this._apiClient);
 
-  Future<Map<String, dynamic>> estimateDeliveryFee({
+  Future<double> estimateDeliveryFee({
     required double latitude,
     required double longitude,
-    required List<String> productIds,
+    int? totalQuantity,
+    List<String>? productIds,
   }) async {
-    final res = await _apiClient.post('/orders/estimate-delivery-fee', data: {
-      'latitude': latitude,
-      'longitude': longitude,
-      'productIds': productIds,
-    });
-    return res.data;
+    try {
+      final res = await _apiClient.post('/orders/estimate-delivery-fee', data: {
+        'address': {
+          'latitude': latitude,
+          'longitude': longitude,
+          'city': 'Adama',
+        },
+        'totalQuantity': totalQuantity ?? 1,
+      });
+      final fee = res.data['deliveryFee'] ?? res.data['data']?['deliveryFee'];
+      return (fee as num?)?.toDouble() ?? 150.0;
+    } catch (_) {
+      return 150.0;
+    }
   }
 
   Future<Map<String, dynamic>> checkout({
-    required String paymentMethod,
-    required String street,
-    required double latitude,
-    required double longitude,
-    required String contactPhone,
+    required Map<String, dynamic> deliveryAddress,
+    String paymentMethod = 'CHAPA',
     String? deliveryNotes,
   }) async {
     final res = await _apiClient.post('/orders/checkout', data: {
       'paymentMethod': 'CHAPA',
-      'deliveryAddress': {
-        'street': street,
-        'subCity': 'Bole',
-        'city': 'Adama',
-        'phoneNumber': contactPhone,
-        'latitude': latitude,
-        'longitude': longitude,
-      },
+      'deliveryAddress': deliveryAddress,
       if (deliveryNotes != null) 'deliveryNotes': deliveryNotes,
     });
 
     final orderJson = res.data['order'] ?? res.data['data'] ?? res.data;
-    final order = OrderModel.fromJson(orderJson);
     final paymentUrl = res.data['paymentUrl'] ?? res.data['checkoutUrl'] ?? '';
 
     return {
-      'order': order,
+      'order': orderJson,
       'paymentUrl': paymentUrl,
     };
   }

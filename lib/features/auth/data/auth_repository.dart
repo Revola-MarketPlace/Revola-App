@@ -14,8 +14,6 @@ class AuthRepository {
     });
 
     final data = Map<String, dynamic>.from(res.data is Map ? res.data : {});
-    
-    // Extract token from body or from set-cookie headers
     String? token = data['token']?.toString() ?? data['accessToken']?.toString();
     if (token == null || token.isEmpty) {
       final rawCookies = res.headers['set-cookie'];
@@ -29,7 +27,6 @@ class AuthRepository {
         }
       }
     }
-
     data['extractedToken'] = token;
     return data;
   }
@@ -52,7 +49,6 @@ class AuthRepository {
     });
 
     final data = Map<String, dynamic>.from(res.data is Map ? res.data : {});
-
     String? token = data['token']?.toString() ?? data['accessToken']?.toString();
     if (token == null || token.isEmpty) {
       final rawCookies = res.headers['set-cookie'];
@@ -66,7 +62,6 @@ class AuthRepository {
         }
       }
     }
-
     data['extractedToken'] = token;
     return data;
   }
@@ -104,6 +99,12 @@ class AuthRepository {
     return data;
   }
 
+  Future<UserModel> completeOnboarding(Map<String, dynamic> payload) async {
+    final res = await _apiClient.post('/auth/onboarding', data: payload);
+    final userJson = res.data['user'] ?? res.data['data'] ?? res.data;
+    return UserModel.fromJson(userJson is Map<String, dynamic> ? userJson : {});
+  }
+
   Future<UserModel> getMe() async {
     final res = await _apiClient.get(ApiEndpoints.me);
     final userJson = res.data['user'] ?? res.data['data'] ?? res.data;
@@ -117,8 +118,6 @@ class AuthRepository {
   }
 
   Future<UserModel> submitSellerOnboarding(Map<String, dynamic> data) async {
-    final res = await _apiClient.post(ApiEndpoints.sellerOnboarding, data: data);
-    final userJson = res.data['user'] ?? res.data['data'] ?? res.data;
-    return UserModel.fromJson(userJson is Map<String, dynamic> ? userJson : {});
+    return completeOnboarding(data);
   }
 }

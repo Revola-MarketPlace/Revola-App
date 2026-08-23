@@ -15,6 +15,7 @@ class AuthState {
   final bool isLoading;
   final String? error;
   final String activeRole;
+  final bool needsRoleSelection;
 
   AuthState({
     this.user,
@@ -22,6 +23,7 @@ class AuthState {
     this.isLoading = false,
     this.error,
     this.activeRole = 'BUYER',
+    this.needsRoleSelection = false,
   });
 
   bool get isAuthenticated => user != null && token != null && token!.isNotEmpty;
@@ -32,6 +34,7 @@ class AuthState {
     bool? isLoading,
     String? error,
     String? activeRole,
+    bool? needsRoleSelection,
   }) {
     return AuthState(
       user: user ?? this.user,
@@ -39,6 +42,7 @@ class AuthState {
       isLoading: isLoading ?? this.isLoading,
       error: error,
       activeRole: activeRole ?? this.activeRole,
+      needsRoleSelection: needsRoleSelection ?? this.needsRoleSelection,
     );
   }
 }
@@ -99,7 +103,12 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> loginWithGoogle({String? credential, String? accessToken, String? email, String? name}) async {
+  Future<bool> loginWithGoogle({
+    String? credential,
+    String? accessToken,
+    String? email,
+    String? name,
+  }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final res = await _repo.googleAuth(
@@ -110,6 +119,9 @@ class AuthController extends StateNotifier<AuthState> {
       );
 
       final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
+      final isNew = res['isNewUser'] == true;
+      final needsRole = res['needsRoleSelection'] == true || isNew;
+
       final rawUser = res['user'] ?? res['data']?['user'];
       final user = rawUser is Map<String, dynamic>
           ? UserModel.fromJson(rawUser)
@@ -124,6 +136,7 @@ class AuthController extends StateNotifier<AuthState> {
         token: token,
         user: user,
         activeRole: user.role,
+        needsRoleSelection: needsRole,
         isLoading: false,
       );
       return true;
@@ -133,38 +146,15 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> register({
-    required String name,
-    required String email,
-    required String password,
-    String role = 'BUYER',
-    String? phoneNumber,
-  }) async {
+  Future<bool> completeOnboarding(Map<String, dynamic> payload) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final res = await _repo.register(
-        name: name,
-        email: email,
-        password: password,
-        role: role,
-        phoneNumber: phoneNumber,
-      );
-      final token = res['extractedToken']?.toString() ?? res['token']?.toString() ?? res['accessToken']?.toString() ?? '';
-      
-      final rawUser = res['user'] ?? res['data']?['user'];
-      final user = rawUser is Map<String, dynamic>
-          ? UserModel.fromJson(rawUser)
-          : UserModel(id: '1', name: name, email: email, role: role);
-
-      if (token.isNotEmpty) {
-        await _storage.saveToken(token);
-      }
+      final user = await _repo.completeOnboarding(payload);
       await _storage.saveActiveRole(user.role);
-
       state = state.copyWith(
-        token: token,
         user: user,
         activeRole: user.role,
+        needsRoleSelection: false,
         isLoading: false,
       );
       return true;

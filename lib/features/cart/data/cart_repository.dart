@@ -37,4 +37,10 @@ class CartRepository {
     final json = res.data['cart'] ?? res.data['data'] ?? res.data;
     return CartModel.fromJson(json);
   }
+
+  Future<void> clearCart() async {
+    try {
+      await _apiClient.delete('/cart');
+    } catch (_) {}
+  }
 }
