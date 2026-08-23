@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/product_model.dart';
@@ -27,6 +28,23 @@ class SellerRepository {
 
   Future<void> deleteProduct(String id) async {
     await _apiClient.delete('${ApiEndpoints.products}/$id');
+  }
+
+  Future<List<String>> uploadImages(List<String> filePaths) async {
+    try {
+      final formData = FormData();
+      for (final path in filePaths) {
+        final filename = path.split(RegExp(r'[\\/]')).last;
+        formData.files.add(
+          MapEntry('images', await MultipartFile.fromFile(path, filename: filename)),
+        );
+      }
+      final res = await _apiClient.post('${ApiEndpoints.products}/upload', data: formData);
+      if (res.data['images'] != null && res.data['images'] is List) {
+        return List<String>.from(res.data['images']);
+      }
+    } catch (_) {}
+    return [];
   }
 
   Future<List<dynamic>> getMyPayouts() async {
