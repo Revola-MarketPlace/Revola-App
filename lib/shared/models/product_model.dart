@@ -119,7 +119,10 @@ class ProductModel {
     if (catName.contains('furnit') || prodName.contains('desk') || prodName.contains('chair') || prodName.contains('door')) {
       return 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=600&auto=format&fit=crop&q=80';
     }
-    return 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&auto=format&fit=crop&q=80';
+    if (catName.contains('plastic') || prodName.contains('plastic') || prodName.contains('barrel') || prodName.contains('crate')) {
+      return 'https://images.unsplash.com/photo-1584473457406-6240486418e9?w=600&auto=format&fit=crop&q=80';
+    }
+    return 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=600&auto=format&fit=crop&q=80';
   }
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
