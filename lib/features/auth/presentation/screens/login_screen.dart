@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -13,8 +13,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailCtrl = TextEditingController(text: 'buyer1@marketplace.com');
-  final _passCtrl = TextEditingController(text: 'BuyerPass123');
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
   bool _obscurePass = true;
   bool _isGoogleLoading = false;
 
@@ -23,13 +23,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
-  }
-
-  void _autofillDemo(String email, String pass) {
-    setState(() {
-      _emailCtrl.text = email;
-      _passCtrl.text = pass;
-    });
   }
 
   Future<void> _handleLogin() async {
@@ -74,20 +67,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isGoogleLoading = true);
     try {
-      // Authenticate with Google auth endpoint on the unified Revola backend
       final success = await ref.read(authControllerProvider.notifier).loginWithGoogle(
         email: 'user.google@revola.et',
-        name: 'Revola Verified User',
+        name: 'Revola Google User',
       );
-
       if (success && mounted) {
-        context.go('/home');
+        final user = ref.read(authControllerProvider).user;
+        final needsRole = ref.read(authControllerProvider).needsRoleSelection;
+        if (needsRole) {
+          context.go('/role-selection');
+        } else if (user?.isAdmin == true) {
+          context.go('/admin-dashboard');
+        } else if (user?.isStaff == true) {
+          context.go('/staff-dashboard');
+        } else if (user?.isSeller == true) {
+          context.go('/seller-dashboard');
+        } else {
+          context.go('/home');
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Google Sign-In: ${e.toString()}'),
+            content: Text('Google Sign-In failed: ${e.toString()}'),
             backgroundColor: const Color(0xFFEF4444),
           ),
         );
@@ -102,61 +105,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authControllerProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 12),
-              const Center(child: BrandLogo(fontSize: 32)),
+              const Center(child: BrandLogo(fontSize: 34)),
               const SizedBox(height: 20),
               const Text(
                 'Welcome Back',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: AppTheme.textPrimary,
-                  letterSpacing: -0.5,
-                ),
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppTheme.textPrimary, letterSpacing: -0.5),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 6),
               const Text(
-                'Sign in to access your Adama salvage materials, orders, and verified seller portal.',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppTheme.textSecondary,
-                  height: 1.4,
-                ),
+                'Sign in to the Revola Adama Materials Marketplace.',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
-              // 1. Google Sign-In Action (For real Google users)
+              // Google Sign-In
               OutlinedButton.icon(
-                onPressed: (_isGoogleLoading || authState.isLoading) ? null : _handleGoogleSignIn,
+                onPressed: (authState.isLoading || _isGoogleLoading) ? null : _handleGoogleSignIn,
                 icon: _isGoogleLoading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
-                      )
-                    : const Icon(Icons.g_mobiledata, color: AppTheme.primaryBlue, size: 30),
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue))
+                    : const Icon(Icons.g_mobiledata, color: AppTheme.primaryBlue, size: 32),
                 label: Text(
                   _isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google',
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.textPrimary),
                 ),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
                   side: const BorderSide(color: AppTheme.borderColor, width: 1.5),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  backgroundColor: const Color(0xFFF8FAFC),
+                  backgroundColor: Colors.white,
                 ),
               ),
+              const SizedBox(height: 24),
 
-              const SizedBox(height: 18),
+              // Divider
               Row(
                 children: [
                   const Expanded(child: Divider(color: AppTheme.borderColor)),
@@ -164,100 +154,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Text(
                       'OR SIGN IN WITH EMAIL',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.textSecondary.withValues(alpha: 0.8),
-                        letterSpacing: 0.5,
-                      ),
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.textSecondary.withValues(alpha: 0.8), letterSpacing: 0.5),
                     ),
                   ),
                   const Expanded(child: Divider(color: AppTheme.borderColor)),
                 ],
               ),
-              const SizedBox(height: 18),
-
-              // Demo Account Quick Chips (Directly connected to active backend database)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'TEST WITH DEMO ACCOUNTS:',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        color: AppTheme.textSecondary,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        ActionChip(
-                          avatar: const Icon(Icons.shopping_cart, size: 14, color: AppTheme.primaryBlue),
-                          label: const Text('Buyer', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                          backgroundColor: Colors.white,
-                          onPressed: () => _autofillDemo('buyer1@marketplace.com', 'BuyerPass123'),
-                        ),
-                        ActionChip(
-                          avatar: const Icon(Icons.storefront, size: 14, color: AppTheme.accentOrange),
-                          label: const Text('Seller', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                          backgroundColor: Colors.white,
-                          onPressed: () => _autofillDemo('seller1@marketplace.com', 'SellerPass123'),
-                        ),
-                        ActionChip(
-                          avatar: const Icon(Icons.badge, size: 14, color: Colors.indigo),
-                          label: const Text('Staff', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                          backgroundColor: Colors.white,
-                          onPressed: () => _autofillDemo('staff.finance@marketplace.com', 'StaffPass123'),
-                        ),
-                        ActionChip(
-                          avatar: const Icon(Icons.admin_panel_settings, size: 14, color: Colors.purple),
-                          label: const Text('Admin', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                          backgroundColor: Colors.white,
-                          onPressed: () => _autofillDemo('admin@marketplace.com', 'AdminPass123'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 20),
 
               // Email Field
-              const Text(
-                'EMAIL ADDRESS',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textSecondary, letterSpacing: 0.5),
-              ),
+              const Text('EMAIL ADDRESS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textSecondary, letterSpacing: 0.5)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _emailCtrl,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  hintText: 'e.g. buyer1@marketplace.com',
+                  hintText: 'Enter your email address',
                   prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.textSecondary, size: 20),
                   filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
+                  fillColor: Colors.white,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.borderColor)),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.borderColor)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2)),
                 ),
               ),
               const SizedBox(height: 14),
 
               // Password Field
-              const Text(
-                'PASSWORD',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textSecondary, letterSpacing: 0.5),
-              ),
+              const Text('PASSWORD', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textSecondary, letterSpacing: 0.5)),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _passCtrl,
@@ -270,12 +194,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: () => setState(() => _obscurePass = !_obscurePass),
                   ),
                   filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
+                  fillColor: Colors.white,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.borderColor)),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.borderColor)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2)),
                 ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 24),
 
               // Sign In Button
               ElevatedButton(
@@ -291,19 +216,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
                     : const Text('Sign In', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
-              // Link to Sign Up
+              // Sign Up link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text("Don't have an account? ", style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
                   GestureDetector(
                     onTap: () => context.go('/register'),
-                    child: const Text(
-                      'Sign Up with Google',
-                      style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.w800, fontSize: 13),
-                    ),
+                    child: const Text('Sign Up with Google', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.w800, fontSize: 13)),
                   ),
                 ],
               ),
