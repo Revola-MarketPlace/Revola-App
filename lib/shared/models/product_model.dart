@@ -108,10 +108,10 @@ class ProductModel {
     final prodName = name.toLowerCase();
 
     if (catName.contains('wood') || prodName.contains('wood') || prodName.contains('pallet') || prodName.contains('timber')) {
-      return 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80';
+      return 'https://images.unsplash.com/photo-1742203900461-d822f8e7fd30?w=600&auto=format&fit=crop&q=80';
     }
     if (catName.contains('metal') || prodName.contains('steel') || prodName.contains('pipe') || prodName.contains('sheet')) {
-      return 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=600&auto=format&fit=crop&q=80';
+      return 'https://images.unsplash.com/photo-1763771420746-c75fefab51b5?w=600&auto=format&fit=crop&q=80';
     }
     if (catName.contains('electronic') || prodName.contains('circuit') || prodName.contains('wire') || prodName.contains('motor')) {
       return 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80';
@@ -120,7 +120,7 @@ class ProductModel {
       return 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=600&auto=format&fit=crop&q=80';
     }
     if (catName.contains('plastic') || prodName.contains('plastic') || prodName.contains('barrel') || prodName.contains('crate')) {
-      return 'https://images.unsplash.com/photo-1584473457406-6240486418e9?w=600&auto=format&fit=crop&q=80';
+      return 'https://images.unsplash.com/photo-1588595422102-da26a1cb48c6?w=600&auto=format&fit=crop&q=80';
     }
     return 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=600&auto=format&fit=crop&q=80';
   }
