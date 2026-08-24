@@ -40,7 +40,7 @@ class AppImageView extends StatelessWidget {
         combined.contains('plank') ||
         combined.contains('lumber') ||
         combined.contains('eucalyptus')) {
-      return 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80';
+      return 'https://images.unsplash.com/photo-1742203900461-d822f8e7fd30?w=600&auto=format&fit=crop&q=80';
     }
     if (combined.contains('metal') ||
         combined.contains('steel') ||
@@ -49,7 +49,7 @@ class AppImageView extends StatelessWidget {
         combined.contains('sheet') ||
         combined.contains('pipe') ||
         combined.contains('scrap')) {
-      return 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=600&auto=format&fit=crop&q=80';
+      return 'https://images.unsplash.com/photo-1763771420746-c75fefab51b5?w=600&auto=format&fit=crop&q=80';
     }
     if (combined.contains('electric') ||
         combined.contains('wire') ||
@@ -67,7 +67,7 @@ class AppImageView extends StatelessWidget {
         combined.contains('crate') ||
         combined.contains('hdpe') ||
         combined.contains('pvc')) {
-      return 'https://images.unsplash.com/photo-1584473457406-6240486418e9?w=600&auto=format&fit=crop&q=80';
+      return 'https://images.unsplash.com/photo-1588595422102-da26a1cb48c6?w=600&auto=format&fit=crop&q=80';
     }
     if (combined.contains('furnit') ||
         combined.contains('desk') ||

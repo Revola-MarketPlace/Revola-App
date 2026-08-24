@@ -105,13 +105,13 @@ class _AddEditMaterialScreenState extends ConsumerState<AddEditMaterialScreen> {
       if (images.isEmpty) {
         final lower = name.toLowerCase();
         if (lower.contains('wood') || lower.contains('timber') || lower.contains('pallet')) {
-          images.add('https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80');
+          images.add('https://images.unsplash.com/photo-1742203900461-d822f8e7fd30?w=600&auto=format&fit=crop&q=80');
         } else if (lower.contains('metal') || lower.contains('steel') || lower.contains('iron') || lower.contains('pipe')) {
-          images.add('https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?w=600&auto=format&fit=crop&q=80');
+          images.add('https://images.unsplash.com/photo-1763771420746-c75fefab51b5?w=600&auto=format&fit=crop&q=80');
         } else if (lower.contains('electric') || lower.contains('circuit') || lower.contains('wire') || lower.contains('device')) {
           images.add('https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80');
         } else if (lower.contains('plastic') || lower.contains('barrel') || lower.contains('tank')) {
-          images.add('https://images.unsplash.com/photo-1584473457406-6240486418e9?w=600&auto=format&fit=crop&q=80');
+          images.add('https://images.unsplash.com/photo-1588595422102-da26a1cb48c6?w=600&auto=format&fit=crop&q=80');
         } else {
           images.add('https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=600&auto=format&fit=crop&q=80');
         }
